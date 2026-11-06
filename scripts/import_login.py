@@ -36,8 +36,8 @@ def import_login(src: Path, data_dir: Path) -> None:
     if not found:
         raise SystemExit("No complete cloud login in the capture")
     Store(Path(data_dir)).save_login(found, time.time())
-    print(f"Saved the login replies to {Path(data_dir) / 'login.json'}")
 
 
 if __name__ == "__main__":
     import_login(Path(sys.argv[1]), Path(sys.argv[2]))
+    print(f"Saved the login replies to {Path(sys.argv[2]) / 'login.json'}")
