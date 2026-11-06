@@ -26,7 +26,4 @@ jobs:
         run: /usr/bin/python3 -m unittest discover -s tests -t . -v
 
       - name: Test the dashboard card
-        run: |
-          if [ -f dist/hisense-washer-card.js ]; then
-            node tests/card-smoke.js dist/hisense-washer-card.js
-          fi
+        run: node tests/card-smoke.js dist/hisense-washer-card.js
