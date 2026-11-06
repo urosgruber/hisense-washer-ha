@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 if [ ! -x .venv/bin/python ]; then
   uv venv -p 3.11 .venv
-  uv pip install -p .venv/bin/python "paho-mqtt<2" "aiohttp<4"
+  uv pip install -p .venv/bin/python "paho-mqtt<2" "aiohttp<4" websocket-client
 fi
 
 export WASHER_DATA_DIR="${WASHER_DATA_DIR:-./data}"
