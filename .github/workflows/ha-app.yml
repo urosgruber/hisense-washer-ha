@@ -1,0 +1,32 @@
+# Every push and pull request: test the server, the app scripts and the card.
+# The release job comes with the app packaging.
+name: HA app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the Python packages of the app image
+        run: sudo apt-get update && sudo apt-get install -y python3-paho-mqtt python3-aiohttp python3-websocket
+
+      # Includes the leak test: the repository is public.
+      - name: Test the server and the app scripts
+        run: /usr/bin/python3 -m unittest discover -s tests -v
+
+      - name: Test the dashboard card
+        run: |
+          if [ -f dist/hisense-washer-card.js ]; then
+            node tests/card-smoke.js dist/hisense-washer-card.js
+          fi
