@@ -66,6 +66,14 @@ class CloudControlTest(unittest.IsolatedAsyncioTestCase):
         await cloud.notify()
         self.assertEqual(calls, [1])
 
+    async def test_info(self):
+        cloud = CloudControl(max_hours=2, clock=Clock())
+        self.assertEqual(cloud.info(login_ready=False),
+                         {"mode": "off", "until": None, "login_ready": False})
+        cloud.turn_on(1)
+        self.assertEqual(cloud.info(login_ready=True),
+                         {"mode": "on", "until": 4600.0, "login_ready": True})
+
     async def test_resolve_uses_address(self):
         self.assertEqual(await resolve_cloud("example.invalid", "203.0.113.1", "203.0.113.5"),
                          "203.0.113.5")

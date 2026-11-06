@@ -35,6 +35,9 @@ class CloudControl:
     def expired(self) -> bool:
         return self.until is not None and self.clock() >= self.until
 
+    def info(self, login_ready: bool) -> dict:
+        return {"mode": self.mode, "until": self.until, "login_ready": login_ready}
+
     async def notify(self) -> None:
         """Tell the device server that the mode changed."""
         if self.on_change is not None:
