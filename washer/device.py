@@ -2,6 +2,11 @@
 
 Cloud off: answer the login (101/102/103) with recorded replies, echo the
 heartbeat (902), decode the status (901). Nothing leaves the house.
+
+Cloud on: pipe every frame to the real cloud and back, unchanged. Decode the
+status on the way, and record the cloud's login replies for cloud-off use.
+The mode is fixed per connection. A mode change drops the washer, and the
+washer logs in again under the new mode.
 """
 from __future__ import annotations
 
@@ -11,7 +16,7 @@ import ssl
 import time
 from typing import Callable
 
-from .cloud import CloudControl
+from .cloud import CloudControl, resolve_cloud
 from .config import Config, parse_bind
 from .cycle import CycleTracker
 from .frame import HEARTBEAT, Frame, parse_frame, split_frames
@@ -23,6 +28,7 @@ log = logging.getLogger(__name__)
 
 LOGIN_IDS = (101, 102, 103)
 READ_SIZE = 4096
+EXPIRY_CHECK_S = 30
 
 
 class DeviceServer:
@@ -39,6 +45,8 @@ class DeviceServer:
         self.server: asyncio.base_events.Server | None = None
         self.current: asyncio.StreamWriter | None = None
         self.port: int | None = None
+        self._expiry_task: asyncio.Task | None = None
+        cloud.on_change = self.drop_washer
 
     @property
     def login_ready(self) -> bool:
@@ -56,8 +64,11 @@ class DeviceServer:
         self.server = await asyncio.start_server(self._handle, host, port, ssl=self._ssl_context())
         self.port = self.server.sockets[0].getsockname()[1]
         log.info("Washer listener on %s:%s", host, self.port)
+        self._expiry_task = asyncio.create_task(self._expiry_loop())
 
     async def stop(self) -> None:
+        if self._expiry_task:
+            self._expiry_task.cancel()
         await self.drop_washer()
         if self.server:
             self.server.close()
@@ -73,6 +84,17 @@ class DeviceServer:
             except (ConnectionError, ssl.SSLError):
                 pass
 
+    async def check_cloud_expiry(self) -> None:
+        if self.cloud.expired():
+            log.info("The cloud time limit ended: cloud off")
+            self.cloud.turn_off()
+            await self.cloud.notify()
+
+    async def _expiry_loop(self) -> None:
+        while True:
+            await asyncio.sleep(EXPIRY_CHECK_S)
+            await self.check_cloud_expiry()
+
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         peer = writer.get_extra_info("peername")
         if self.current is not None:
@@ -83,7 +105,10 @@ class DeviceServer:
         self.on_change()
         log.info("Washer connected from %s (cloud %s)", peer, self.cloud.mode)
         try:
-            await self._serve_local(reader, writer)
+            if self.cloud.mode == "on":
+                await self._serve_cloud(reader, writer)
+            else:
+                await self._serve_local(reader, writer)
         except (ConnectionError, ssl.SSLError, asyncio.IncompleteReadError) as e:
             log.info("Washer connection error: %s", e)
         finally:
@@ -106,6 +131,52 @@ class DeviceServer:
                 self.state.on_frame(time.time())
                 if not await self._answer_locally(frame, writer):
                     return
+
+    async def _serve_cloud(self, reader, writer) -> None:
+        address = await resolve_cloud(self.config.cloud_host, self.config.cloud_resolver,
+                                      self.config.cloud_address)
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE  # the cloud certificate does not match; see the design
+        log.info("Cloud on: forwarding to %s:%s", address, self.config.cloud_port)
+        up_reader, up_writer = await asyncio.open_connection(
+            address, self.config.cloud_port, ssl=ctx, server_hostname="")
+        recorded: dict[int, bytes] = {}
+
+        async def washer_to_cloud():
+            buf = b""
+            while data := await reader.read(READ_SIZE):
+                up_writer.write(data)
+                await up_writer.drain()
+                frames, buf = split_frames(buf + data)
+                for raw in frames:
+                    self.state.on_frame(time.time())
+                    frame = parse_frame(raw)
+                    if frame.id == 901:
+                        self.handle_status(frame)
+
+        async def cloud_to_washer():
+            buf = b""
+            while data := await up_reader.read(READ_SIZE):
+                writer.write(data)
+                await writer.drain()
+                frames, buf = split_frames(buf + data)
+                for raw in frames:
+                    fid = parse_frame(raw).id
+                    if fid in LOGIN_IDS:
+                        recorded[fid] = raw
+                        if len(recorded) == len(LOGIN_IDS):
+                            self.store.save_login(dict(recorded), time.time())
+                            log.info("Recorded the cloud login replies")
+                            recorded.clear()
+
+        tasks = [asyncio.create_task(washer_to_cloud()), asyncio.create_task(cloud_to_washer())]
+        try:
+            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            for t in tasks:
+                t.cancel()
+            up_writer.close()
 
     async def _answer_locally(self, frame: Frame, writer) -> bool:
         """Answer one frame. Return False to close the connection."""
