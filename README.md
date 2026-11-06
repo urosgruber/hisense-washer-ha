@@ -12,5 +12,5 @@ Status: work in progress.
 ## Test
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -t . -v
 ```

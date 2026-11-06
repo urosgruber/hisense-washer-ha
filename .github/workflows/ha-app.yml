@@ -23,7 +23,7 @@ jobs:
 
       # Includes the leak test: the repository is public.
       - name: Test the server and the app scripts
-        run: /usr/bin/python3 -m unittest discover -s tests -v
+        run: /usr/bin/python3 -m unittest discover -s tests -t . -v
 
       - name: Test the dashboard card
         run: |
