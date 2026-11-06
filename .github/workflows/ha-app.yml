@@ -1,5 +1,9 @@
 # Every push and pull request: test the server, the app scripts and the card.
-# The release job comes with the app packaging.
+# A push to main whose ha-app/config.yaml has a version without a tag is a
+# release: build and push the image, tag v<version>, then move the `release`
+# branch to this commit. Home Assistant reads the app from the `release`
+# branch (repository URL ending in #release), so it only sees a version after
+# its image exists.
 name: HA app
 
 on:
@@ -19,7 +23,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install the Python packages of the app image
-        run: sudo apt-get update && sudo apt-get install -y python3-paho-mqtt python3-aiohttp python3-websocket
+        run: sudo apt-get update && sudo apt-get install -y python3-paho-mqtt python3-aiohttp python3-websocket python3-yaml
 
       # Includes the leak test: the repository is public.
       - name: Test the server and the app scripts
@@ -27,3 +31,79 @@ jobs:
 
       - name: Test the dashboard card
         run: node tests/card-smoke.js dist/hisense-washer-card.js
+
+  release:
+    name: Release app image
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Is this a new version?
+        id: version
+        run: |
+          version="$(sed -n 's/^version: "\(.*\)"$/\1/p' ha-app/config.yaml)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "v${version} exists; nothing to release."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.new == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - if: steps.version.outputs.new == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - if: steps.version.outputs.new == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ha-app/Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            BUILD_VERSION=${{ steps.version.outputs.version }}
+          tags: ghcr.io/urosgruber/hisense-washer-ha-amd64:${{ steps.version.outputs.version }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The `release` branch holds only what Home Assistant reads: the
+      # repository file and the app's config, docs, changelog and images.
+      - name: Tag, and publish to Home Assistant
+        if: steps.version.outputs.new == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${VERSION}" -m "HA app ${VERSION}"
+          git push origin "v${VERSION}"
+
+          git worktree add --detach "$RUNNER_TEMP/release"
+          cd "$RUNNER_TEMP/release"
+          if git ls-remote --exit-code --heads origin release >/dev/null; then
+            git fetch origin release
+            git checkout -B release FETCH_HEAD
+          else
+            git checkout --orphan release
+          fi
+          git rm -rfq . >/dev/null 2>&1 || true
+          mkdir -p ha-app
+          cp "$GITHUB_WORKSPACE/repository.yaml" .
+          cp "$GITHUB_WORKSPACE"/ha-app/{config.yaml,DOCS.md,CHANGELOG.md,icon.png,logo.png} ha-app/
+          git add -A
+          git commit -m "HA app ${VERSION} (from ${GITHUB_SHA::7})"
+          git push origin release
