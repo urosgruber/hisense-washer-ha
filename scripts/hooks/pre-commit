@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Refuse a commit that would put home details or device secrets into this
+# public repository. Install once per clone:
+#   git config core.hooksPath scripts/hooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+py=python3
+[ -x .venv/bin/python ] && py=.venv/bin/python
+if ! "$py" -m unittest tests.test_leak >/dev/null 2>&1; then
+  "$py" -m unittest tests.test_leak 2>&1 | grep -E "^\s*'|FAIL" || true
+  echo "pre-commit: the leak test failed. Remove the home details first." >&2
+  exit 1
+fi

@@ -20,3 +20,15 @@ Use this to test before the Home Assistant app exists, or to debug.
    ```
 
 4. Switch the washer on. The log shows "Washer connected" and the state.
+
+## Before the first commit in a new clone
+
+This repository is public. Install the leak hook once:
+
+```bash
+git config core.hooksPath scripts/hooks
+```
+
+Put your own home host names and IP prefixes, one per line, in
+`~/.config/hisense-washer/leak-words`. That file stays on your machine. The
+leak test and the hook refuse every tracked file that contains one of them.
