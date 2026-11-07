@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- The admin page has a new page, "Raw status bytes". It shows the last
+  40 different statuses and marks the bytes that changed. Use it to find
+  the program, the door and the temperature in the status. The page
+  reloads every 3 seconds.
+
 ## 0.1.1
 
 Fixes from a code review, and hardening.
