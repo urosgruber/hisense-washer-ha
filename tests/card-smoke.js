@@ -87,6 +87,24 @@ c.hass = hass({ "sensor.phase": "delayed", "sensor.minutes_left": "300", "sensor
 check("delayed shows when it ends", html().includes("Delay start") && html().includes("Ends at")
   && html().includes("5 h 0 min"));
 
+// A tap on the icon or name: admins go to the device page, others get more-info.
+const pushed = [];
+global.history = { pushState: (_s, _t, url) => pushed.push(url) };
+window.dispatchEvent = () => {};
+global.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } };
+const events = [];
+c.dispatchEvent = (e) => events.push(e);
+const h = hass();
+h.entities = { [`sensor.${P}_phase`]: { device_id: "dev123" } };
+c.hass = { ...h, user: { is_admin: true } };
+c._openDevice();
+check("an admin tap opens the device page", pushed[0] === "/config/devices/device/dev123");
+c.hass = { ...h, user: { is_admin: false } };
+c._openDevice();
+check("a non-admin tap opens more-info", events.some((e) => e.type === "hass-more-info"
+  && e.detail.entityId === `sensor.${P}_phase`));
+check("the icon and name are clickable", html().includes('id="open-device"') && html().includes('id="open-device-name"'));
+
 const c2 = new Card();
 c2.setConfig({});
 c2.hass = { states: {}, locale: { language: "en" } };

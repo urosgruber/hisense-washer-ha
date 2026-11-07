@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- A tap on the card's icon or name opens the washer: the device page for
+  an admin, the more-info dialog for other users.
+- The docs show a 14-day history of energy and water.
+
 ## 0.2.0
 
 New fields, decoded from a session at the washer (Hisense 5S series).

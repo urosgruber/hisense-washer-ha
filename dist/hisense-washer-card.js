@@ -52,6 +52,20 @@ class HisenseWasherCard extends HTMLElement {
     return `${domain}.${this._config.prefix}_${name}`;
   }
 
+  // Like a tile card's icon: an admin goes to the device page. Other users
+  // cannot open Settings, so they get the washer's more-info dialog.
+  _openDevice() {
+    const id = this._id("sensor", "phase");
+    const entity = this._hass && this._hass.entities && this._hass.entities[id];
+    const isAdmin = !!(this._hass && this._hass.user && this._hass.user.is_admin);
+    if (isAdmin && entity && entity.device_id) {
+      history.pushState(null, "", `/config/devices/device/${entity.device_id}`);
+      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+      return;
+    }
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: id }, bubbles: true, composed: true }));
+  }
+
   _state(domain, name) {
     const s = this._hass && this._hass.states[this._id(domain, name)];
     return s ? s : null;
@@ -169,9 +183,9 @@ class HisenseWasherCard extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${STYLE}</style>
       <ha-card class="${tone}">
         <div class="header">
-          <div class="shape"><ha-icon icon="mdi:washing-machine"></ha-icon></div>
+          <div class="shape" id="open-device" title="Open the device"><ha-icon icon="mdi:washing-machine"></ha-icon></div>
           <div class="info">
-            <div class="primary">${esc(this._config.name)}</div>
+            <div class="primary" id="open-device-name" title="Open the device">${esc(this._config.name)}</div>
             <div class="secondary">${esc(status.join(" · "))}${!connected ? " · No connection" : ""}${cloud.startsWith("on") ? ` · Cloud ${esc(cloud)}` : ""}</div>
           </div>
           ${icons.join("")}
@@ -181,6 +195,10 @@ class HisenseWasherCard extends HTMLElement {
         ${options.length ? `<div class="chips">${options.map((o) => `<span class="chip">${esc(o)}</span>`).join("")}</div>` : ""}
         ${running ? `<div class="footer">This wash: ${energy.toFixed(2)} kWh · ${water.toFixed(2)} L</div>` : ""}
       </ha-card>`;
+    for (const id of ["open-device", "open-device-name"]) {
+      const el = this.shadowRoot.querySelector(`#${id}`);
+      if (el) el.onclick = () => this._openDevice();
+    }
   }
 }
 
@@ -201,6 +219,7 @@ const STYLE = `
   ha-card.active { --tone-rgb: var(--wash-rgb); }
   ha-card.done { --tone-rgb: var(--done-rgb); }
   .header { display: flex; align-items: center; gap: 4px; height: 40px; }
+  #open-device, #open-device-name { cursor: pointer; }
   .shape { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
     background: rgba(var(--tone-rgb), .2); color: rgb(var(--tone-rgb)); }
   .shape ha-icon { --mdc-icon-size: 20px; }
