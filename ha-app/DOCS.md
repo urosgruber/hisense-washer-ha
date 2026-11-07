@@ -83,6 +83,33 @@ element doesn't exist". In the Companion app, use Settings → Companion app
 type: custom:hisense-washer-card
 ```
 
+### History of energy and water
+
+Home Assistant keeps long-term statistics of **Total energy** and **Total
+water**. The built-in Statistics graph card shows them per day:
+
+```yaml
+type: vertical-stack
+title: Washer – last 14 days
+cards:
+  - type: statistics-graph
+    entities:
+      - entity: sensor.hisense_washer_total_energy
+        name: Energy
+    stat_types: [change]
+    chart_type: bar
+    period: day
+    days_to_show: 14
+  - type: statistics-graph
+    entities:
+      - entity: sensor.hisense_washer_total_water
+        name: Water
+    stat_types: [change]
+    chart_type: bar
+    period: day
+    days_to_show: 14
+```
+
 ## Notifications
 
 When a wash ends, the app sends a message to the phones in
