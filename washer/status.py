@@ -11,7 +11,7 @@ The phase (byte 18) is the decoded byte itself, with no "- 1".
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .frame import Frame
 
@@ -58,6 +58,8 @@ class Status:
     water_l: float
     door_locked: bool | None
     program_raw: int | None
+    # The decoded 115 bytes, for the admin page. Not part of equality.
+    raw: bytes = field(default=b"", compare=False, repr=False)
 
     @classmethod
     def from_bytes(cls, d: bytes) -> "Status":
@@ -75,6 +77,7 @@ class Status:
             water_l=round((litres or 0) + (centi or 0) / 100, 2),
             door_locked=None if flags is None else bool(flags & DOOR_BIT),
             program_raw=_value(d, B_PROGRAM),
+            raw=bytes(d),
         )
 
 

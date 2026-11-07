@@ -21,6 +21,39 @@ from .store import Store
 PHASE_NAMES = {"off": "Off", "idle": "Idle", "delayed": "Delay start", "washing": "Washing",
                "rinsing": "Rinsing", "spinning": "Spinning", "done": "Done", "unknown": "Unknown"}
 
+# Bytes we already understand. The raw page labels them.
+KNOWN_BYTES = {18: "phase", 20: "program?", 22: "spin/100", 28: "flags (0x20 door?)",
+               31: "minutes", 66: "energy", 67: "water L", 68: "water cL"}
+
+RAW_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="3">
+<base href="{base}">
+<title>Washer raw status</title>
+<style>
+body {{ font-family: system-ui, sans-serif; margin: 16px; color: #222; }}
+h1 {{ font-size: 1.3em; }} h2 {{ font-size: 1.05em; margin-top: 1.6em; }}
+table {{ border-collapse: collapse; }}
+td, th {{ padding: 2px 6px; border-bottom: 1px solid #ddd; font-family: ui-monospace, monospace;
+  text-align: center; }}
+th.l, td.l {{ text-align: left; }}
+.chg {{ background: #ffe08a; font-weight: bold; }}
+.known {{ color: #0277bd; }}
+.wrap {{ overflow-x: auto; }}
+@media (prefers-color-scheme: dark) {{ body {{ background: #111; color: #ddd; }}
+  td, th {{ border-color: #333; }} .chg {{ background: #6b5400; }} }}
+</style></head><body>
+<h1>Raw status bytes</h1>
+<p><a href="./">Back</a>. The page reloads every 3 seconds. Each row is a status that
+differs from the one before. Columns show only bytes that changed. A yellow cell
+changed from the row above. Values are hex, as decoded (before the &minus;1).</p>
+<div class="wrap"><table>{changes}</table></div>
+<h2>Current status, all bytes</h2>
+<div class="wrap"><table>{dump}</table></div>
+</body></html>
+"""
+
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,6 +81,7 @@ button {{ padding: 6px 12px; }}
 </form>
 <form method="post" action="cloud/off"><button type="submit">Cloud off</button></form>
 <p>Login recorded: {login}</p>
+<p><a href="raw">Raw status bytes</a> (for decoding new fields)</p>
 <h2>Last cycles</h2>
 <table><tr><th>Start</th><th>End</th><th>Energy</th><th>Water</th><th>Confirmed</th></tr>{cycles}</table>
 </body></html>
@@ -153,6 +187,46 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
         return await handler(request)
 
     app = web.Application(middlewares=[only_allowed])
+    async def raw(request: web.Request) -> web.Response:
+        history = list(state.raw_history)
+        cols = sorted({i for (_, a), (_, b) in zip(history, history[1:])
+                       for i in range(max(len(a), len(b)))
+                       if (a[i] if i < len(a) else None) != (b[i] if i < len(b) else None)})
+
+        def head(i):
+            label = KNOWN_BYTES.get(i)
+            return f'<th title="{html.escape(label)}" class="known">{i}</th>' if label else f"<th>{i}</th>"
+
+        def cell(cur, prev, i):
+            v = cur[i] if i < len(cur) else None
+            text = "--" if v is None else f"{v:02x}"
+            p = prev[i] if prev is not None and i < len(prev) else None
+            return f'<td class="chg">{text}</td>' if prev is not None and v != p else f"<td>{text}</td>"
+
+        if cols:
+            rows = ['<tr><th class="l">Time</th>' + "".join(head(i) for i in cols) + "</tr>"]
+            prev = None
+            for t, data in history:
+                rows.append(f'<tr><td class="l">{time.strftime("%H:%M:%S", time.localtime(t))}</td>'
+                            + "".join(cell(data, prev, i) for i in cols) + "</tr>")
+                prev = data
+            changes = "".join(rows)
+        else:
+            changes = "<tr><td>No change yet. Turn the program knob or open the door.</td></tr>"
+        dump = "<tr><td>No status yet</td></tr>"
+        if history:
+            data = history[-1][1]
+            lines = ['<tr><th class="l">Offset</th>' + "".join(f"<th>+{j}</th>" for j in range(16)) + "</tr>"]
+            for off in range(0, len(data), 16):
+                lines.append(f'<tr><td class="l">{off}</td>' + "".join(
+                    f'<td class="known" title="{html.escape(KNOWN_BYTES[i])}">{data[i]:02x}</td>'
+                    if i in KNOWN_BYTES else f"<td>{data[i]:02x}</td>"
+                    for i in range(off, min(off + 16, len(data)))) + "</tr>")
+            dump = "".join(lines)
+        body = RAW_PAGE.format(base=html.escape(_base(request)), changes=changes, dump=dump)
+        return web.Response(text=body, content_type="text/html")
+
+    app.add_routes([web.get("/raw", raw)])
     app.add_routes([web.get("/", index), web.post("/cloud/on", cloud_on),
                     web.post("/cloud/off", cloud_off), web.get("/api/status", api_status)])
     return app

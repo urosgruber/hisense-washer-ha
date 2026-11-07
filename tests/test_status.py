@@ -88,5 +88,18 @@ class StatusFieldsTest(unittest.TestCase):
         self.assertIsNone(status_from_frame(parse_frame(raw)))
 
 
+class RawBytesTest(unittest.TestCase):
+    def test_status_keeps_raw_bytes(self):
+        from tests.helpers import fixture_statuses
+        _, s = next(iter(fixture_statuses("wash-2026-11-06.jsonl")))
+        self.assertEqual(len(s.raw), 115)
+        self.assertEqual(s.raw[18], s.phase_raw)
+
+    def test_raw_does_not_change_equality(self):
+        a = Status.from_bytes(bytes([1] * 115))
+        b = Status.from_bytes(bytes([1] * 114 + [2]))
+        self.assertEqual(a, b)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,8 @@
 """The live view of the washer that MQTT, the card and the admin page read."""
 from __future__ import annotations
 
+from collections import deque
+
 from .status import RUNNING, Status
 from .store import Cycle
 
@@ -13,9 +15,13 @@ LIVENESS_S = 420
 LIVE_KEYS = ("minutes_left", "end_time", "spin_rpm", "door_locked",
              "cycle_energy_kwh", "cycle_water_l")
 
+RAW_HISTORY = 40  # distinct status snapshots kept in memory
+
 
 class WasherState:
     def __init__(self):
+        # (time, raw bytes) of the last distinct statuses, for decoding new fields.
+        self.raw_history: deque[tuple[float, bytes]] = deque(maxlen=RAW_HISTORY)
         self.status: Status | None = None
         self.status_at: float | None = None
         self.last_frame: float | None = None
@@ -32,6 +38,8 @@ class WasherState:
         self.last_frame = now
 
     def on_status(self, s: Status, now: float) -> None:
+        if s.raw and (not self.raw_history or self.raw_history[-1][1] != s.raw):
+            self.raw_history.append((now, s.raw))
         self.status = s
         self.status_at = now
         self.last_frame = now

@@ -1,3 +1,4 @@
+from washer.status import Status
 import tempfile
 import time
 import unittest
@@ -142,6 +143,38 @@ class WebTest(unittest.IsolatedAsyncioTestCase):
         self.cloud.turn_on(1)
         text = await (await self.client.get("/")).text()
         self.assertIn("Cloud unreachable", text)
+
+
+class RawPageTest(WebTest):
+    def status(self, program, door):
+        raw = bytearray([1] * 115)
+        raw[18], raw[20], raw[28] = 0x24, program, door
+        return Status.from_bytes(bytes(raw))
+
+    async def test_raw_page_shows_changed_bytes(self):
+        self.state.raw_history.clear()
+        self.state.on_status(self.status(0x1b, 0x00), 100.0)
+        self.state.on_status(self.status(0x0c, 0x00), 160.0)
+        self.state.on_status(self.status(0x0c, 0x20), 220.0)
+        r = await self.client.get("/raw")
+        self.assertEqual(r.status, 200)
+        text = await r.text()
+        self.assertIn(">20</th>", text)
+        self.assertIn(">28</th>", text)
+        self.assertNotIn(">19</th>", text.split("Current status")[0])  # never changed: no column
+        self.assertIn('<td class="chg">0c</td>', text)
+        self.assertIn('<td class="chg">20</td>', text)
+        self.assertIn('http-equiv="refresh"', text)
+
+    async def test_raw_page_needs_allowed_peer(self):
+        client = await self.make_client(allowed={"172.30.32.2"})
+        try:
+            self.assertEqual((await client.get("/raw")).status, 403)
+        finally:
+            await client.close()
+
+    async def test_index_links_to_raw(self):
+        self.assertIn('href="raw"', await (await self.client.get("/")).text())
 
 
 if __name__ == "__main__":

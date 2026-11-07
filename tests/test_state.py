@@ -1,8 +1,9 @@
+from washer.status import Status
 import unittest
 
 from tests.helpers import make_status
 from washer.cycle import Cycle
-from washer.state import GRACE_S, LIVENESS_S, WasherState
+from washer.state import GRACE_S, LIVENESS_S, RAW_HISTORY, WasherState
 
 
 class WasherStateTest(unittest.TestCase):
@@ -56,6 +57,29 @@ class WasherStateTest(unittest.TestCase):
         v = st.view(4000)
         self.assertEqual((v["last_cycle_end"], v["last_cycle_energy_kwh"], v["last_cycle_water_l"]),
                          (3600, 0.45, 54.76))
+
+
+class RawHistoryTest(unittest.TestCase):
+    def status(self, *changes):
+        raw = bytearray([1] * 115)
+        raw[18] = 0x24
+        for i, v in changes:
+            raw[i] = v
+        return Status.from_bytes(bytes(raw))
+
+    def test_keeps_distinct_snapshots(self):
+        st = WasherState()
+        st.on_status(self.status(), 1.0)
+        st.on_status(self.status(), 2.0)          # same bytes: not kept again
+        st.on_status(self.status((20, 9)), 3.0)
+        self.assertEqual([t for t, _ in st.raw_history], [1.0, 3.0])
+
+    def test_history_is_bounded(self):
+        st = WasherState()
+        for i in range(RAW_HISTORY + 10):
+            st.on_status(self.status((20, i % 250 + 2)), float(i))
+        self.assertEqual(len(st.raw_history), RAW_HISTORY)
+        self.assertEqual(st.raw_history[-1][0], float(RAW_HISTORY + 9))
 
 
 if __name__ == "__main__":
