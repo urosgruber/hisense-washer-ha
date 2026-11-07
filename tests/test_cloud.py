@@ -1,10 +1,11 @@
+import json
 import asyncio
 import ssl
 import tempfile
 import unittest
 from pathlib import Path
 
-from tests.test_device import HELLO, LOGIN, SIG, client_ctx, washer_frame
+from tests.test_device import FAKE_WID, HELLO, LOGIN, SIG, client_ctx, washer_frame
 from washer.cloud import CloudControl, build_dns_query, parse_dns_answer, resolve_cloud
 from washer.config import Config
 from washer.cycle import CycleTracker
@@ -14,6 +15,7 @@ from washer.state import WasherState
 from washer.store import Store
 
 CLOUD_LOGIN = {i: f.replace(b'"err":0', b'"err":0,"cloud":1') for i, f in LOGIN.items()}
+REJECTED_102 = b'HS{"id":102,"err":3}' + SIG + b"\r\n"
 
 
 class Clock:
@@ -101,6 +103,7 @@ class FakeCloud:
 
     def __init__(self, cert_dir: Path):
         self.received = []
+        self.replies = dict(CLOUD_LOGIN)
         self.store = Store(cert_dir)
 
     async def start(self):
@@ -116,7 +119,7 @@ class FakeCloud:
             frames, buf = split_frames(buf + data)
             for raw in frames:
                 self.received.append(raw)
-                for fid, reply in CLOUD_LOGIN.items():
+                for fid, reply in self.replies.items():
                     if raw.startswith(b'HS{"id":%d' % fid):
                         writer.write(reply)
                 if raw == HEARTBEAT:
@@ -124,8 +127,9 @@ class FakeCloud:
             await writer.drain()
 
     async def stop(self):
-        self.server.close()
-        await self.server.wait_closed()
+        if self.server.is_serving():
+            self.server.close()
+            await self.server.wait_closed()
 
 
 class CloudModeTest(unittest.IsolatedAsyncioTestCase):
@@ -135,8 +139,9 @@ class CloudModeTest(unittest.IsolatedAsyncioTestCase):
         self.cloud_server = FakeCloud(base / "cloud")
         await self.cloud_server.start()
         self.store = Store(base / "data")
-        self.store.save_login(LOGIN, 1.0)
-        config = Config(data_dir=base / "data", device_bind="127.0.0.1:0",
+        self.store.save_login(LOGIN, 1.0, wid=FAKE_WID)
+        self.store.tls_paths()
+        self.config = config = Config(data_dir=base / "data", device_bind="127.0.0.1:0",
                         cloud_address="127.0.0.1", cloud_port=self.cloud_server.port)
         self.cloud = CloudControl(max_hours=2)
         self.server = DeviceServer(config, self.store, WasherState(), CycleTracker(self.store),
@@ -176,12 +181,76 @@ class CloudModeTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_mode_change_drops_washer(self):
         r, w = await self.connect()
-        w.write(HEARTBEAT)
+        w.write(HELLO)
+        await w.drain()
         await self.read(r)
         self.cloud.turn_on(1)
         await self.cloud.notify()
         self.assertEqual(await asyncio.wait_for(r.read(), 3), b"")
         w.close()
+
+    async def test_cloud_pipe_records_washer_id(self):
+        # an old recording, made before the app stored the washer id
+        self.store._write("login.json", json.dumps(
+            {"recorded_at": 1.0, "replies": {str(k): v.hex() for k, v in LOGIN.items()}}))
+        self.assertIsNone(self.store.load_wid())
+        self.cloud.turn_on(1)
+        r, w = await self.connect()
+        w.write(HELLO)
+        await w.drain()
+        await self.read(r)
+        for fid in (102, 103):
+            w.write(washer_frame(fid))
+            await w.drain()
+            await self.read(r)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.store.load_wid(), FAKE_WID)
+        w.close()
+
+    async def test_rejected_login_not_saved(self):
+        self.cloud_server.replies[102] = REJECTED_102
+        self.cloud.turn_on(1)
+        r, w = await self.connect()
+        for frame in (HELLO, washer_frame(102), washer_frame(103)):
+            w.write(frame)
+            await w.drain()
+            await self.read(r)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.store.load_login(), LOGIN)
+        w.close()
+
+    async def test_cloud_unreachable_falls_back_to_local(self):
+        await self.cloud_server.stop()  # nothing listens on the cloud port now
+        self.cloud.turn_on(1)
+        r, w = await self.connect()
+        w.write(HELLO)
+        await w.drain()
+        self.assertEqual(await self.read(r), LOGIN[101])
+        self.assertIsNotNone(self.server.cloud_error)
+        w.close()
+
+    async def test_cloud_dns_failure_falls_back_to_local(self):
+        self.config.cloud_address = None
+        self.config.cloud_resolver = "127.0.0.1"  # no DNS server here: the query times out
+        self.cloud.turn_on(1)
+        r, w = await self.connect()
+        w.write(HELLO)
+        await w.drain()
+        self.assertEqual(await asyncio.wait_for(r.readuntil(b"\r\n"), 15), LOGIN[101])
+        self.assertIn("DNS", self.server.cloud_error)
+        w.close()
+
+    async def test_expiry_survives_failing_drop(self):
+        async def broken():
+            raise RuntimeError("drop failed")
+
+        clock = Clock()
+        self.cloud.clock = clock
+        self.cloud.on_change = broken
+        self.cloud.turn_on(1)
+        clock.t += 3601
+        await self.server.check_cloud_expiry()  # must not raise
+        self.assertEqual(self.cloud.mode, "off")
 
     async def test_expiry_turns_cloud_off(self):
         clock = Clock()

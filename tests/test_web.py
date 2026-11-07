@@ -16,6 +16,7 @@ from washer.web import make_app
 class FakeDevice:
     def __init__(self, store):
         self.store = store
+        self.cloud_error = None
 
     @property
     def login_ready(self):
@@ -41,12 +42,16 @@ class WebTest(unittest.IsolatedAsyncioTestCase):
         self.cloud.on_change = drop
         self.changes = 0
 
-        def changed():
-            self.changes += 1
+        self.device = FakeDevice(self.store)
+        self.client = await self.make_client()
 
-        app = make_app(self.state, self.cloud, self.store, FakeDevice(self.store), on_change=changed)
-        self.client = TestClient(TestServer(app))
-        await self.client.start_server()
+    async def make_client(self, allowed=None):
+        app = make_app(self.state, self.cloud, self.store, self.device,
+                       on_change=lambda: setattr(self, "changes", self.changes + 1),
+                       allowed=allowed)
+        client = TestClient(TestServer(app))
+        await client.start_server()
+        return client
 
     async def asyncTearDown(self):
         await self.client.close()
@@ -106,6 +111,30 @@ class WebTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("0" * 32, text)  # the fake token
         self.assertNotIn("token", text.lower())
         self.assertNotIn("AAAA", text)  # the fake key
+
+
+    async def test_only_allowed_peer(self):
+        client = await self.make_client(allowed={"172.30.32.2"})
+        try:
+            self.assertEqual((await client.get("/")).status, 403)
+            r = await client.post("/cloud/on", data={"hours": "1"}, allow_redirects=False)
+            self.assertEqual(r.status, 403)
+            self.assertEqual(self.cloud.mode, "off")
+        finally:
+            await client.close()
+
+    async def test_allowed_peer_passes(self):
+        client = await self.make_client(allowed={"127.0.0.1"})
+        try:
+            self.assertEqual((await client.get("/")).status, 200)
+        finally:
+            await client.close()
+
+    async def test_cloud_error_on_page(self):
+        self.device.cloud_error = "Cloud unreachable"
+        self.cloud.turn_on(1)
+        text = await (await self.client.get("/")).text()
+        self.assertIn("Cloud unreachable", text)
 
 
 if __name__ == "__main__":

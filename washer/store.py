@@ -52,10 +52,18 @@ class Store:
             return None
         return {int(k): bytes.fromhex(v) for k, v in data["replies"].items()}
 
-    def save_login(self, replies: dict[int, bytes], at: float) -> None:
-        data = {"recorded_at": at, "replies": {str(k): v.hex() for k, v in replies.items()}}
+    def save_login(self, replies: dict[int, bytes], at: float, wid: str | None = None) -> None:
+        """Save the cloud's login replies. Without a wid, keep the stored one."""
+        wid = wid or self.load_wid()
+        data = {"recorded_at": at, "wid": wid,
+                "replies": {str(k): v.hex() for k, v in replies.items()}}
         self._write("login.json", json.dumps(data))
         os.chmod(self.dir / "login.json", 0o600)
+
+    def load_wid(self) -> str | None:
+        """The washer id seen at the recorded login. Only that washer may log in."""
+        data = self._read_json("login.json")
+        return data.get("wid") if data else None
 
     def login_recorded_at(self) -> float | None:
         data = self._read_json("login.json")

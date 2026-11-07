@@ -13,9 +13,17 @@ encrypts its commands, and the app does not have the key.
 1. The DNS server answers `wash-eu-link.hijuconn.com` with the IP address
    of this Home Assistant host.
 2. The washer always connects to port 443. Home Assistant itself uses 443,
-   so the app listens on **4444** (option `device_port`).
+   so the app listens on **4444**. To use another host port, change it in
+   the app's Network panel.
 3. A destination-NAT rule on the gateway changes the port from 443 to 4444
    for the washer's IP address only.
+4. Set the option `washer_ip` to the washer's IP address. The app then
+   refuses every other device on port 4444. Give the washer a fixed IP
+   address (a DHCP reservation) first.
+
+Port 4444 is open to your LAN. The app accepts a connection only after a
+valid login from the washer it recorded at the first cloud login. With
+`washer_ip` set, it also refuses every other address.
 
 The washer accepts any TLS certificate. The app makes its own certificate
 at the first start.
@@ -39,6 +47,9 @@ forwards everything to ConnectLife, and Hisense sees the washer's data.
 - The cloud turns off by itself after `cloud_max_hours` (default 2).
 - A restart of the app always comes back with the cloud off.
 - Only admins can turn it on. The dashboard card only shows it.
+
+If the cloud cannot be reached, the app answers the washer itself, as with
+the cloud off. The admin page then shows the error.
 
 The app finds the real cloud through a public DNS server (option
 `cloud_resolver`, default `1.1.1.1`), because your own DNS points the host

@@ -6,6 +6,7 @@ behind ingress and on a plain port. The page shows no device secrets.
 from __future__ import annotations
 
 import html
+import logging
 import time
 from typing import Callable
 from urllib.parse import urlparse
@@ -53,6 +54,8 @@ button {{ padding: 6px 12px; }}
 """
 
 
+log = logging.getLogger(__name__)
+
 def _t(epoch: float | None) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(epoch)) if epoch else "-"
 
@@ -73,7 +76,11 @@ def _same_origin(request: web.Request) -> bool:
 
 
 def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
-             on_change: Callable[[], None] = lambda: None) -> web.Application:
+             on_change: Callable[[], None] = lambda: None,
+             allowed: set[str] | None = None) -> web.Application:
+    """allowed: the only peer addresses that may use the page. In the app this
+    is the ingress gateway, so only Home Assistant admins reach it. None
+    allows every peer (the Mac run, bound to 127.0.0.1)."""
     def payload() -> dict:
         return state_payload(state.view(time.time()), store.load_totals(),
                              cloud.info(device.login_ready))
@@ -99,6 +106,9 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
                     "so the washer can log in with the cloud off later.</span>")
         else:
             note = "The washer talks only to this server."
+        error = getattr(device, "cloud_error", None)
+        if info["mode"] == "on" and error:
+            note += f'<br><span class="warn">{html.escape(error)}. The server answers the washer locally.</span>'
         recorded = store.login_recorded_at()
         cycles = "".join(
             f"<tr><td>{_t(c.started)}</td><td>{_t(c.ended)}</td><td>{c.energy_kwh:.2f} kWh</td>"
@@ -136,15 +146,23 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
     async def api_status(request: web.Request) -> web.Response:
         return web.json_response(payload())
 
-    app = web.Application()
+    @web.middleware
+    async def only_allowed(request, handler):
+        if allowed is not None and request.remote not in allowed:
+            log.warning("Refused a web request from %s", request.remote)
+            raise web.HTTPForbidden(text="Use the Washer (admin) page in Home Assistant")
+        return await handler(request)
+
+    app = web.Application(middlewares=[only_allowed])
     app.add_routes([web.get("/", index), web.post("/cloud/on", cloud_on),
                     web.post("/cloud/off", cloud_off), web.get("/api/status", api_status)])
     return app
 
 
 async def start_web(state, cloud, store, device, host: str, port: int,
-                    on_change: Callable[[], None] = lambda: None) -> web.AppRunner:
-    runner = web.AppRunner(make_app(state, cloud, store, device, on_change))
+                    on_change: Callable[[], None] = lambda: None,
+                    allowed: set[str] | None = None) -> web.AppRunner:
+    runner = web.AppRunner(make_app(state, cloud, store, device, on_change, allowed))
     await runner.setup()
     await web.TCPSite(runner, host, port).start()
     return runner

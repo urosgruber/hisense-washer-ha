@@ -33,9 +33,18 @@ class AppConfigTest(unittest.TestCase):
         for option in handled_elsewhere - {"notify_targets"}:
             self.assertIn(f"bashio::config.true '{option}'", self.run_sh)
 
-    def test_device_port_matches(self):
-        port = self.config["options"]["device_port"]
-        self.assertIn(f"{port}/tcp", self.config["ports"])
+    def test_container_port_is_fixed(self):
+        # The host port changes in the Network panel; the container port never does.
+        self.assertNotIn("device_port", self.config["options"])
+        self.assertIn("4444/tcp", self.config["ports"])
+        self.assertIn("WASHER_DEVICE_BIND=0.0.0.0:4444", self.run_sh)
+
+    def test_washer_ip_option(self):
+        self.assertEqual(self.config["schema"]["washer_ip"], "str?")
+        self.assertIn("WASHER_WASHER_IP", self.run_sh)
+
+    def test_admin_page_only_through_ingress(self):
+        self.assertIn("WASHER_WEB_ALLOWED=172.30.32.2", self.run_sh)
 
     def test_image_name(self):
         self.assertEqual(self.config["image"], "ghcr.io/urosgruber/hisense-washer-ha-{arch}")

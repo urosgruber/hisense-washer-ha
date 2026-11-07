@@ -4,8 +4,15 @@
 set -e
 
 export WASHER_DATA_DIR=/data
-export WASHER_DEVICE_BIND="0.0.0.0:$(bashio::config 'device_port' '4444')"
+export WASHER_DEVICE_BIND=0.0.0.0:4444
 export WASHER_WEB_BIND=0.0.0.0:8080
+# Only the ingress gateway may open the admin page: Home Assistant admins only.
+export WASHER_WEB_ALLOWED=172.30.32.2
+if bashio::config.has_value 'washer_ip'; then
+  export WASHER_WASHER_IP="$(bashio::config 'washer_ip')"
+else
+  bashio::log.warning "washer_ip is empty: every LAN device may connect to port 4444. Set it to the washer's IP address."
+fi
 export WASHER_CLOUD_MAX_HOURS="$(bashio::config 'cloud_max_hours' '2')"
 export WASHER_CLOUD_RESOLVER="$(bashio::config 'cloud_resolver' '1.1.1.1')"
 if bashio::config.has_value 'cloud_address'; then

@@ -25,6 +25,8 @@ class Config:
     cloud_host: str = "wash-eu-link.hijuconn.com"
     cloud_port: int = 443
     log_level: str = "INFO"
+    washer_ip: str | None = None
+    web_allowed: str | None = None
 
     @classmethod
     def from_env(cls, env: dict | None = None) -> "Config":
@@ -48,4 +50,6 @@ class Config:
             cloud_host=get("cloud_host", d.cloud_host),
             cloud_port=int(get("cloud_port", d.cloud_port)),
             log_level=get("log_level", d.log_level).upper(),
+            washer_ip=get("washer_ip"),
+            web_allowed=get("web_allowed"),
         )

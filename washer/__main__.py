@@ -67,7 +67,9 @@ async def main() -> None:
 
     from .web import start_web
     host, port = parse_bind(config.web_bind)
-    await start_web(state, cloud, store, device, host, port, on_change=publish_state)
+    allowed = {a.strip() for a in config.web_allowed.split(",")} if config.web_allowed else None
+    await start_web(state, cloud, store, device, host, port, on_change=publish_state,
+                    allowed=allowed)
 
     try:
         while True:  # the grace period and liveness change the view with time

@@ -1,6 +1,7 @@
 # Home Assistant app: a local server for a Hisense washer, with no ConnectLife
-# cloud by default. The washer connects on device_port. A gateway NAT rule
-# sends the washer's port 443 here, because Home Assistant owns 443.
+# cloud by default. The washer connects on port 4444. A gateway NAT rule
+# sends the washer's port 443 here, because Home Assistant owns 443. To use
+# another host port, change it in the app's Network panel.
 name: Hisense Washer
 version: "0.1.0"
 slug: hisense_washer
@@ -34,7 +35,7 @@ map:
   - type: homeassistant_config
     read_only: false
 options:
-  device_port: 4444
+  washer_ip: ""
   mqtt: true
   notify: true
   notify_targets: []
@@ -42,7 +43,7 @@ options:
   cloud_resolver: "1.1.1.1"
   cloud_address: ""
 schema:
-  device_port: port
+  washer_ip: str?
   mqtt: bool
   notify: bool
   notify_targets:
