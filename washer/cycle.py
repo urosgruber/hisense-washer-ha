@@ -43,13 +43,20 @@ class CycleTracker:
         return None  # "unknown" changes nothing
 
     def _close(self, now: float, confirmed: bool) -> Cycle:
+        """Count the cycle once, even when a crash interrupts this and the
+        restarted app closes the same open cycle again. Each step checks
+        whether it already ran; the open cycle goes last."""
         cycle = replace(self.open, ended=now, confirmed=confirmed)
         totals = self.store.load_totals()
-        totals.energy_kwh = round(totals.energy_kwh + cycle.energy_kwh, 2)
-        totals.water_l = round(totals.water_l + cycle.water_l, 2)
-        totals.cycles += 1
-        self.store.append_cycle(cycle)
-        self.store.save_totals(totals)
+        if totals.last_started != cycle.started:
+            totals.energy_kwh = round(totals.energy_kwh + cycle.energy_kwh, 2)
+            totals.water_l = round(totals.water_l + cycle.water_l, 2)
+            totals.cycles += 1
+            totals.last_started = cycle.started
+            self.store.save_totals(totals)
+        last = self.store.recent_cycles(1)
+        if not last or last[0].started != cycle.started:
+            self.store.append_cycle(cycle)
         self.store.save_open_cycle(None)
         self.open = None
         return cycle

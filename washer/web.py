@@ -127,10 +127,9 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
         if turn_on:
             form = await request.post()
             try:
-                hours = float(form.get("hours", cloud.max_hours))
+                cloud.turn_on(float(form.get("hours", cloud.max_hours)))
             except ValueError:
-                raise web.HTTPBadRequest(text="hours must be a number")
-            cloud.turn_on(hours)
+                raise web.HTTPBadRequest(text="hours must be a positive number")
         else:
             cloud.turn_off()
         await cloud.notify()

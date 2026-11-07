@@ -85,6 +85,13 @@ class WebTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r.status, 400)
         self.assertEqual(self.cloud.mode, "off")
 
+    async def test_cloud_on_zero_or_negative_hours(self):
+        for bad in ("0", "-1", "nan", "inf"):
+            r = await self.client.post("/cloud/on", data={"hours": bad}, allow_redirects=False)
+            self.assertEqual(r.status, 400, bad)
+            self.assertEqual(self.cloud.mode, "off")
+            self.assertEqual(self.dropped, 0)
+
     async def test_cross_site_post_refused(self):
         r = await self.client.post("/cloud/on", data={"hours": "1"}, allow_redirects=False,
                                    headers={"Origin": "https://evil.example"})

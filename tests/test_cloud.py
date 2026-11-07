@@ -37,6 +37,13 @@ class CloudControlTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(cloud.mode, "on")
         self.assertEqual(cloud.until, 1000.0 + 7200)
 
+    async def test_turn_on_refuses_zero_negative_and_nan(self):
+        cloud = CloudControl(max_hours=2, clock=Clock())
+        for bad in (0, -1, float("nan"), float("inf")):
+            with self.assertRaises(ValueError, msg=bad):
+                cloud.turn_on(bad)
+            self.assertEqual(cloud.mode, "off")
+
     async def test_turn_on_default_is_max(self):
         cloud = CloudControl(max_hours=1.5, clock=Clock())
         cloud.turn_on()

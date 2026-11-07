@@ -13,6 +13,9 @@ class Totals:
     energy_kwh: float = 0.0
     water_l: float = 0.0
     cycles: int = 0
+    # The start time of the last cycle counted in these totals. A close
+    # that a crash cut short can run again without counting twice.
+    last_started: float | None = None
 
 
 @dataclass

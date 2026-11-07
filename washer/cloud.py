@@ -5,6 +5,7 @@ The state lives in memory only, so a restart always comes back with the cloud of
 from __future__ import annotations
 
 import asyncio
+import math
 import random
 import socket
 import struct
@@ -26,7 +27,12 @@ class CloudControl:
         return "on" if self.until is not None else "off"
 
     def turn_on(self, hours: float | None = None) -> None:
-        hours = self.max_hours if hours is None else max(0.0, min(float(hours), self.max_hours))
+        """Raise ValueError for hours that are not a positive finite number."""
+        if hours is not None:
+            hours = float(hours)
+            if not math.isfinite(hours) or hours <= 0:
+                raise ValueError("hours must be a positive number")
+        hours = self.max_hours if hours is None else min(hours, self.max_hours)
         self.until = self.clock() + hours * 3600
 
     def turn_off(self) -> None:
