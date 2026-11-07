@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+New fields, decoded from a session at the washer (Hisense 5S series).
+
+- New entities: Program, Temperature, Steam, Extra rinse, Quicker (off, 1,
+  2) and Rinses. "Door locked" is now on by default.
+- The card shows the program, temperature and spin speed, the options that
+  are on, a lock icon while the door is locked, and the connection.
+- Delay start: the card shows when the wash ends and the time left.
+- Fix: the time left is a 16-bit value. Before, a delay start of more than
+  about 4 hours showed a wrong time.
+- Fix: a ready washer with a program that starts with pre-wash or spin
+  showed the phase "unknown". It now shows "idle".
+
 ## 0.1.2
 
 - The admin page has a new page, "Raw status bytes". It shows the last
