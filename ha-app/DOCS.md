@@ -69,7 +69,10 @@ the last state for 10 minutes.
 ## Dashboard card
 
 The app installs its own dashboard card at every start. You need no HACS.
-After an app update, reload the browser page once.
+After the first install and after each app update, reload the browser page
+once (Cmd+Shift+R or Ctrl+Shift+R). Otherwise the dashboard says "Custom
+element doesn't exist". In the Companion app, use Settings → Companion app
+→ Debugging → Reset frontend cache, then open the app again.
 
 ```yaml
 type: custom:hisense-washer-card
