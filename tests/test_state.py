@@ -74,6 +74,9 @@ class RawHistoryTest(unittest.TestCase):
         st.on_status(self.status((20, 9)), 3.0)
         self.assertEqual([t for t, _ in st.raw_history], [1.0, 3.0])
 
+    def test_history_holds_a_long_test(self):
+        self.assertGreaterEqual(RAW_HISTORY, 200)
+
     def test_history_is_bounded(self):
         st = WasherState()
         for i in range(RAW_HISTORY + 10):

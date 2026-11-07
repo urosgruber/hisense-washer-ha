@@ -19,7 +19,7 @@ OPTION_KEYS = ("program", "temperature_c", "steam", "extra_rinse", "quicker", "r
 LIVE_KEYS = ("minutes_left", "end_time", "spin_rpm", "door_locked",
              "cycle_energy_kwh", "cycle_water_l")
 
-RAW_HISTORY = 40  # distinct status snapshots kept in memory
+RAW_HISTORY = 200  # distinct status snapshots kept in memory (about 23 KB)
 
 
 class WasherState:

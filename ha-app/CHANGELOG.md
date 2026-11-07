@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Raw status bytes: the page keeps the last 200 statuses (before: 40),
+  shows the newest at the top, and has a Pause link for screenshots.
+
 ## 0.2.1
 
 - A tap on the card's icon or name opens the washer: the device page for

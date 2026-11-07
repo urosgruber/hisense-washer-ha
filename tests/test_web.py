@@ -166,6 +166,21 @@ class RawPageTest(WebTest):
         self.assertIn('<td class="chg">20</td>', text)
         self.assertIn('http-equiv="refresh"', text)
 
+    async def test_raw_page_newest_first_and_pause(self):
+        self.state.raw_history.clear()
+        self.state.on_status(self.status(0x1b, 0x00), 100.0)
+        self.state.on_status(self.status(0x0c, 0x00), 160.0)
+        text = await (await self.client.get("/raw")).text()
+        self.assertLess(text.index(self.clock(160.0)), text.index(self.clock(100.0)))
+        paused = await (await self.client.get("/raw?pause=1")).text()
+        self.assertNotIn('http-equiv="refresh"', paused)
+        self.assertIn('href="raw"', paused)          # resume link
+        self.assertIn('href="raw?pause=1"', text)     # pause link
+
+    @staticmethod
+    def clock(t):
+        return time.strftime("%H:%M:%S", time.localtime(t))
+
     async def test_raw_page_needs_allowed_peer(self):
         client = await self.make_client(allowed={"172.30.32.2"})
         try:

@@ -15,7 +15,7 @@ from aiohttp import web
 
 from .cloud import CloudControl
 from .mqtt import cloud_text, state_payload
-from .state import WasherState
+from .state import RAW_HISTORY, WasherState
 from .store import Store
 
 PHASE_NAMES = {"off": "Off", "idle": "Idle", "delayed": "Delay start", "washing": "Washing",
@@ -28,7 +28,7 @@ KNOWN_BYTES = {18: "phase", 20: "program?", 22: "spin/100", 28: "flags (0x20 doo
 RAW_PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="3">
+{refresh}
 <base href="{base}">
 <title>Washer raw status</title>
 <style>
@@ -45,9 +45,11 @@ th.l, td.l {{ text-align: left; }}
   td, th {{ border-color: #333; }} .chg {{ background: #6b5400; }} }}
 </style></head><body>
 <h1>Raw status bytes</h1>
-<p><a href="./">Back</a>. The page reloads every 3 seconds. Each row is a status that
-differs from the one before. Columns show only bytes that changed. A yellow cell
-changed from the row above. Values are hex, as decoded (before the &minus;1).</p>
+<p><a href="./">Back</a> · {pause_link}</p>
+<p>The newest status is at the top. Each row is a status that differs from the one
+before (the row below). Columns show only bytes that changed. A yellow cell changed
+from the row below. Values are hex, as decoded (before the &minus;1). The page keeps
+the last {limit} statuses.</p>
 <div class="wrap"><table>{changes}</table></div>
 <h2>Current status, all bytes</h2>
 <div class="wrap"><table>{dump}</table></div>
@@ -204,13 +206,14 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
             return f'<td class="chg">{text}</td>' if prev is not None and v != p else f"<td>{text}</td>"
 
         if cols:
-            rows = ['<tr><th class="l">Time</th>' + "".join(head(i) for i in cols) + "</tr>"]
+            body_rows = []
             prev = None
             for t, data in history:
-                rows.append(f'<tr><td class="l">{time.strftime("%H:%M:%S", time.localtime(t))}</td>'
-                            + "".join(cell(data, prev, i) for i in cols) + "</tr>")
+                body_rows.append(f'<tr><td class="l">{time.strftime("%H:%M:%S", time.localtime(t))}</td>'
+                                 + "".join(cell(data, prev, i) for i in cols) + "</tr>")
                 prev = data
-            changes = "".join(rows)
+            header = '<tr><th class="l">Time</th>' + "".join(head(i) for i in cols) + "</tr>"
+            changes = header + "".join(reversed(body_rows))
         else:
             changes = "<tr><td>No change yet. Turn the program knob or open the door.</td></tr>"
         dump = "<tr><td>No status yet</td></tr>"
@@ -223,7 +226,12 @@ def make_app(state: WasherState, cloud: CloudControl, store: Store, device,
                     if i in KNOWN_BYTES else f"<td>{data[i]:02x}</td>"
                     for i in range(off, min(off + 16, len(data)))) + "</tr>")
             dump = "".join(lines)
-        body = RAW_PAGE.format(base=html.escape(_base(request)), changes=changes, dump=dump)
+        paused = request.query.get("pause") == "1"
+        body = RAW_PAGE.format(
+            base=html.escape(_base(request)), changes=changes, dump=dump, limit=RAW_HISTORY,
+            refresh="" if paused else '<meta http-equiv="refresh" content="3">',
+            pause_link=('Paused. <a href="raw">Resume</a> (reload every 3 s)' if paused
+                        else 'Reloads every 3 s. <a href="raw?pause=1">Pause</a>'))
         return web.Response(text=body, content_type="text/html")
 
     app.add_routes([web.get("/raw", raw)])
