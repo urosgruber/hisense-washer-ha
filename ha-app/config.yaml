@@ -1,0 +1,53 @@
+# Home Assistant app: a local server for a Hisense washer, with no ConnectLife
+# cloud by default. The washer connects on port 4444. A gateway NAT rule
+# sends the washer's port 443 here, because Home Assistant owns 443. To use
+# another host port, change it in the app's Network panel.
+name: Hisense Washer
+version: "0.1.0"
+slug: hisense_washer
+description: Local status of a Hisense washer, with no ConnectLife cloud by default
+url: https://github.com/urosgruber/hisense-washer-ha
+# Pre-built by GitHub Actions on a v<version> tag; the Supervisor pulls it.
+image: ghcr.io/urosgruber/hisense-washer-ha-{arch}
+arch:
+  - amd64
+init: false
+startup: application
+boot: auto
+# The admin page: status and the cloud switch. Admins only.
+ingress: true
+ingress_port: 8080
+panel_icon: mdi:washing-machine
+panel_title: Washer (admin)
+panel_admin: true
+ports:
+  4444/tcp: 4444
+  8080/tcp: null
+ports_description:
+  4444/tcp: Washer connection (TLS). The NAT rule sends the washer's port 443 here.
+  8080/tcp: Admin page without Home Assistant. Keep it off; it has no login.
+services:
+  - mqtt:want
+# The app installs its dashboard card: it writes to /homeassistant/www and
+# registers the Lovelace resource through the Core API.
+homeassistant_api: true
+map:
+  - type: homeassistant_config
+    read_only: false
+options:
+  washer_ip: ""
+  mqtt: true
+  notify: true
+  notify_targets: []
+  cloud_max_hours: 2
+  cloud_resolver: "1.1.1.1"
+  cloud_address: ""
+schema:
+  washer_ip: str?
+  mqtt: bool
+  notify: bool
+  notify_targets:
+    - str
+  cloud_max_hours: float(0.5,24)
+  cloud_resolver: str
+  cloud_address: str?
