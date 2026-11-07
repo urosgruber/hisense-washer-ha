@@ -43,13 +43,66 @@
       "model": "Washer (ConnectLife)",
       "name": "Hisense Washer"
     },
-    "enabled_by_default": false,
     "has_entity_name": true,
     "icon": "mdi:lock",
     "name": "Door locked",
     "state_topic": "hisense_washer/state",
     "unique_id": "hisense_washer_door_locked",
-    "value_template": "{{ 'ON' if value_json.get('door_locked') else 'OFF' }}"
+    "value_template": "{% set v = value_json.get('door_locked') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
+  },
+  "homeassistant/binary_sensor/hisense_washer/extra_rinse/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "binary_sensor.hisense_washer_extra_rinse",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:water-plus",
+    "name": "Extra rinse",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_extra_rinse",
+    "value_template": "{% set v = value_json.get('extra_rinse') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
+  },
+  "homeassistant/binary_sensor/hisense_washer/steam/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "binary_sensor.hisense_washer_steam",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:weather-fog",
+    "name": "Steam",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_steam",
+    "value_template": "{% set v = value_json.get('steam') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
   },
   "homeassistant/event/hisense_washer/cycle/config": {
     "availability": [
@@ -272,6 +325,110 @@
     "unique_id": "hisense_washer_phase",
     "value_template": "{{ value_json.get('phase') }}"
   },
+  "homeassistant/sensor/hisense_washer/program/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "sensor.hisense_washer_program",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "device_class": "enum",
+    "has_entity_name": true,
+    "icon": "mdi:tune-variant",
+    "name": "Program",
+    "options": [
+      "Additional Cycles",
+      "Allergy Care",
+      "Auto",
+      "Baby Care",
+      "Bedding",
+      "Cotton",
+      "Drum Clean",
+      "Eco 40-60",
+      "Power 49'/30'",
+      "Quick 15'",
+      "Refresh",
+      "Spin",
+      "Synthetics",
+      "Wool"
+    ],
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_program",
+    "value_template": "{{ value_json.get('program') }}"
+  },
+  "homeassistant/sensor/hisense_washer/quicker/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "sensor.hisense_washer_quicker",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "device_class": "enum",
+    "has_entity_name": true,
+    "icon": "mdi:clock-fast",
+    "name": "Quicker",
+    "options": [
+      "off",
+      "1",
+      "2"
+    ],
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_quicker",
+    "value_template": "{% set q = value_json.get('quicker') %}{{ None if q is none else ('off' if q == 0 else q) }}"
+  },
+  "homeassistant/sensor/hisense_washer/rinses/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "sensor.hisense_washer_rinses",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:water-sync",
+    "name": "Rinses",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_rinses",
+    "value_template": "{{ value_json.get('rinses') }}"
+  },
   "homeassistant/sensor/hisense_washer/spin_speed/config": {
     "availability": [
       {
@@ -299,6 +456,35 @@
     "unique_id": "hisense_washer_spin_speed",
     "unit_of_measurement": "rpm",
     "value_template": "{{ value_json.get('spin_rpm') }}"
+  },
+  "homeassistant/sensor/hisense_washer/temperature/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "sensor.hisense_washer_temperature",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "device_class": "temperature",
+    "has_entity_name": true,
+    "icon": "mdi:thermometer-water",
+    "name": "Temperature",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_temperature",
+    "unit_of_measurement": "°C",
+    "value_template": "{{ value_json.get('temperature_c') }}"
   },
   "homeassistant/sensor/hisense_washer/total_energy/config": {
     "availability": [

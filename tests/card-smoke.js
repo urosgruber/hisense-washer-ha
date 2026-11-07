@@ -65,6 +65,28 @@ check("cloud on shows the cloud mark", html().includes("Cloud on until 21:30"));
 c.hass = hass({ "sensor.phase": "unavailable" });
 check("unavailable renders without a crash", html().includes("Washer"));
 
+c.hass = hass({ "sensor.phase": "washing", "sensor.minutes_left": "68", "sensor.end_time": inMinutes(68),
+  "sensor.program": "Synthetics", "sensor.temperature": "40", "sensor.spin_speed": "1000",
+  "binary_sensor.door_locked": "on", "sensor.quicker": "2", "binary_sensor.steam": "off",
+  "binary_sensor.extra_rinse": "on" });
+check("shows the program, temperature and spin", html().includes("Synthetics · 40 °C · 1000 rpm"));
+check("shows the door lock icon", html().includes("mdi:lock"));
+check("shows the options that are on", html().includes("Quicker 2") && html().includes("Extra rinse")
+  && !html().includes(">Steam<"));
+check("shows the connection icon when connected", html().includes("mdi:wifi\""));
+
+c.hass = hass({ "sensor.phase": "idle", "sensor.program": "Auto", "sensor.temperature": "0",
+  "sensor.spin_speed": "0" });
+check("cold and no spin read as words", html().includes("Auto · Cold · No spin"));
+
+c.hass = hass({ "sensor.phase": "idle", "sensor.program": "Eco 40-60", "sensor.temperature": "0",
+  "sensor.spin_speed": "1400" });
+check("Eco hides the temperature", html().includes("Eco 40-60 · 1400 rpm"));
+
+c.hass = hass({ "sensor.phase": "delayed", "sensor.minutes_left": "300", "sensor.end_time": inMinutes(300) });
+check("delayed shows when it ends", html().includes("Delay start") && html().includes("Ends at")
+  && html().includes("5 h 0 min"));
+
 const c2 = new Card();
 c2.setConfig({});
 c2.hass = { states: {}, locale: { language: "en" } };

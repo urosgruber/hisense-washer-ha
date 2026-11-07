@@ -14,7 +14,10 @@ const STEPS = [["washing", "Wash"], ["rinsing", "Rinse"], ["spinning", "Spin"]];
 const RUNNING = new Set(["washing", "rinsing", "spinning"]);
 const WATCHED = ["sensor.phase", "sensor.minutes_left", "sensor.end_time", "sensor.cycle_energy",
   "sensor.cycle_water", "binary_sensor.connected", "binary_sensor.door_locked", "sensor.cloud",
-  "event.cycle"];
+  "event.cycle", "sensor.program", "sensor.temperature", "sensor.spin_speed", "sensor.quicker",
+  "binary_sensor.steam", "binary_sensor.extra_rinse"];
+// Programs with no temperature choice: the washer reports 0 for them.
+const NO_TEMPERATURE = new Set(["Eco 40-60", "Spin", "Additional Cycles"]);
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -67,6 +70,32 @@ class HisenseWasherCard extends HTMLElement {
     return d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", hour12: false });
   }
 
+  // "Synthetics · 40 °C · 1000 rpm"
+  _settings() {
+    const program = this._value("sensor", "program");
+    const temp = this._value("sensor", "temperature");
+    const spin = this._value("sensor", "spin_speed");
+    const parts = [];
+    if (program) parts.push(program);
+    if (temp !== null && !NO_TEMPERATURE.has(program)) parts.push(Number(temp) === 0 ? "Cold" : `${temp} °C`);
+    if (spin !== null) parts.push(Number(spin) === 0 ? "No spin" : `${spin} rpm`);
+    return parts.join(" · ");
+  }
+
+  _options() {
+    const on = [];
+    if (this._value("binary_sensor", "steam") === "on") on.push("Steam");
+    if (this._value("binary_sensor", "extra_rinse") === "on") on.push("Extra rinse");
+    const quicker = this._value("sensor", "quicker");
+    if (quicker && quicker !== "off") on.push(`Quicker ${quicker}`);
+    return on;
+  }
+
+  _duration(minutes) {
+    const m = Number(minutes);
+    return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
+  }
+
   _render() {
     if (!this.shadowRoot || !this._config) return;
     if (!this._hass) {
@@ -94,7 +123,9 @@ class HisenseWasherCard extends HTMLElement {
 
     const tone = running ? "active" : phase === "done" ? "done" : "";
     const status = [PHASE_NAMES[phase] || phase];
-    if (running && locked) status.push("door locked");
+    const settings = phase !== "off" ? this._settings() : "";
+    if (settings) status.push(settings);
+    const options = phase !== "off" && phase !== "done" ? this._options() : [];
 
     let main;
     if (running && endIso) {
@@ -103,8 +134,10 @@ class HisenseWasherCard extends HTMLElement {
         <div class="big right"><span class="label">Time left</span>
           <span class="value">${minutes !== null ? `${esc(minutes)} min left` : "–"}</span></div>`;
     } else if (phase === "delayed") {
-      main = `<div class="big"><span class="label">Delay start</span>
-          <span class="value">Waiting</span></div>`;
+      main = `<div class="big"><span class="label">Delay start · Ends at</span>
+          <span class="value">${esc((endIso && this._time(endIso)) || "–")}</span></div>
+        <div class="big right"><span class="label">Time left</span>
+          <span class="value">${minutes !== null ? esc(this._duration(minutes)) : "–"}</span></div>`;
     } else if (lastAttrs) {
       const when = this._time(last.state);
       main = `<div class="big"><span class="label">Last wash${when ? ` · ended ${esc(when)}` : ""}</span>
@@ -123,9 +156,12 @@ class HisenseWasherCard extends HTMLElement {
     }).join("");
 
     const icons = [];
-    if (!connected) {
-      icons.push(`<div class="icon-state warn" title="No connection"><ha-icon icon="mdi:wifi-off"></ha-icon></div>`);
+    if (locked) {
+      icons.push(`<div class="icon-state" title="Door locked"><ha-icon icon="mdi:lock"></ha-icon></div>`);
     }
+    icons.push(connected
+      ? `<div class="icon-state" title="Connected"><ha-icon icon="mdi:wifi"></ha-icon></div>`
+      : `<div class="icon-state warn" title="No connection"><ha-icon icon="mdi:wifi-off"></ha-icon></div>`);
     if (cloud.startsWith("on")) {
       icons.push(`<div class="icon-state warn" title="Cloud ${esc(cloud.slice(3))}"><ha-icon icon="mdi:cloud-outline"></ha-icon></div>`);
     }
@@ -142,6 +178,7 @@ class HisenseWasherCard extends HTMLElement {
         </div>
         <div class="feature tile">${main}</div>
         ${running || phase === "done" ? `<div class="feature steps">${steps}</div>` : ""}
+        ${options.length ? `<div class="chips">${options.map((o) => `<span class="chip">${esc(o)}</span>`).join("")}</div>` : ""}
         ${running ? `<div class="footer">This wash: ${energy.toFixed(2)} kWh · ${water.toFixed(2)} L</div>` : ""}
       </ha-card>`;
   }
@@ -188,6 +225,9 @@ const STYLE = `
   .step { flex: 1; display: grid; place-items: center; border-radius: calc(var(--r) - 4px);
     font-size: 13px; font-weight: 500; color: var(--secondary-text-color); }
   .step.on { background: var(--selected-bg); color: var(--primary-text-color); box-shadow: var(--selected-shadow); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+  .chip { font-size: 12px; font-weight: 500; line-height: 24px; padding: 0 10px; border-radius: 12px;
+    background: rgba(var(--wash-rgb), .15); color: var(--primary-text-color); }
   .footer { font-size: 12px; color: var(--secondary-text-color); padding: 0 4px; font-variant-numeric: tabular-nums; }
 `;
 
@@ -196,5 +236,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "hisense-washer-card",
   name: "Hisense Washer",
-  description: "When the wash ends, the phase, and energy and water.",
+  description: "When the wash ends, the program, the phase, and energy and water.",
 });

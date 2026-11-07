@@ -16,13 +16,17 @@ ENTITY_IDS = {
     "sensor.hisense_washer_total_water", "sensor.hisense_washer_cycles",
     "binary_sensor.hisense_washer_connected", "sensor.hisense_washer_cloud",
     "event.hisense_washer_cycle",
+    "sensor.hisense_washer_program", "sensor.hisense_washer_temperature",
+    "sensor.hisense_washer_quicker", "sensor.hisense_washer_rinses",
+    "binary_sensor.hisense_washer_steam", "binary_sensor.hisense_washer_extra_rinse",
 }
 
 VIEW = {"phase": "washing", "phase_raw": "0x44", "minutes_left": 37, "end_time": 1793990734.0,
         "spin_rpm": 1200, "door_locked": True, "cycle_energy_kwh": 0.2, "cycle_water_l": 7.84,
         "connected": True, "stale": False, "last_status": 1793988514.0,
         "last_cycle_end": None, "last_cycle_energy_kwh": None, "last_cycle_water_l": None,
-        "last_cycle_confirmed": None}
+        "last_cycle_confirmed": None, "program": "Synthetics", "temperature_c": 40,
+        "steam": False, "extra_rinse": True, "quicker": 2, "rinses": 3, "delay_hours": 0}
 
 
 class DiscoveryTest(unittest.TestCase):
@@ -43,9 +47,18 @@ class DiscoveryTest(unittest.TestCase):
         self.assertEqual((water["state_class"], water["device_class"], water["unit_of_measurement"]),
                          ("total_increasing", "water", "L"))
 
-    def test_door_disabled_by_default(self):
+    def test_door_enabled_now_confirmed(self):
         door = discovery_payloads()["homeassistant/binary_sensor/hisense_washer/door_locked/config"]
-        self.assertFalse(door["enabled_by_default"])
+        self.assertNotIn("enabled_by_default", door)
+        self.assertIn("'None'", door["value_template"])   # unknown before the first status
+
+    def test_program_options(self):
+        from washer.status import PROGRAMS
+        program = discovery_payloads()["homeassistant/sensor/hisense_washer/program/config"]
+        self.assertEqual(program["device_class"], "enum")
+        self.assertEqual(set(program["options"]), set(PROGRAMS.values()))
+        quicker = discovery_payloads()["homeassistant/sensor/hisense_washer/quicker/config"]
+        self.assertEqual(quicker["options"], ["off", "1", "2"])
 
     def test_no_secrets_in_payloads(self):
         text = json.dumps(discovery_payloads()).lower()
@@ -62,6 +75,8 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((p["total_energy_kwh"], p["total_water_l"], p["cycles"]), (1.0, 100.0, 2))
         self.assertEqual(p["cloud"], "off")
         self.assertNotIn("token", p)
+        self.assertEqual((p["program"], p["temperature_c"], p["quicker"], p["extra_rinse"]),
+                         ("Synthetics", 40, 2, True))
 
     def test_state_payload_no_end_time(self):
         p = state_payload(dict(VIEW, end_time=None), Totals(), {"mode": "off", "until": None,

@@ -101,5 +101,58 @@ class RawBytesTest(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+
+def session_status(**bytes_at):
+    """A status built from the bytes seen in the knob session (2026-11-07)."""
+    d = bytearray([1] * 115)
+    d[18], d[20], d[21], d[22], d[88], d[107] = 0x24, 0x1b, 0x05, 0x0d, 0x03, 0x0b
+    d[31] = d[33] = d[35] = 0x3b
+    for name, value in bytes_at.items():
+        d[int(name[1:])] = value
+    return Status.from_bytes(bytes(d))
+
+
+class SessionFieldsTest(unittest.TestCase):
+    def test_auto_program(self):
+        s = session_status()
+        self.assertEqual((s.program, s.temperature_c, s.spin_rpm, s.minutes_left),
+                         ("Auto", 40, 1200, 58))
+        self.assertEqual((s.steam, s.extra_rinse, s.quicker, s.rinses, s.delay_hours),
+                         (False, False, 0, 2, 0))
+
+    def test_program_names(self):
+        names = {0x0a: "Eco 40-60", 0x08: "Cotton", 0x09: "Synthetics", 0x0b: "Wool",
+                 0x1a: "Power 49'/30'", 0x0c: "Quick 15'", 0x15: "Additional Cycles",
+                 0x07: "Drum Clean", 0x1c: "Bedding", 0x0f: "Spin", 0x11: "Baby Care",
+                 0x06: "Allergy Care", 0x05: "Refresh", 0x1b: "Auto"}
+        for code, name in names.items():
+            self.assertEqual(session_status(b20=code).program, name)
+        self.assertIsNone(session_status(b20=0x30).program)
+
+    def test_temperature(self):
+        self.assertEqual(session_status(b21=0x01).temperature_c, 0)     # cold
+        self.assertEqual(session_status(b21=0x0a).temperature_c, 90)    # Drum Clean
+
+    def test_no_spin(self):
+        self.assertEqual(session_status(b22=0x01).spin_rpm, 0)
+
+    def test_minutes_are_16_bit(self):
+        s = session_status(b18=0x2c, b25=0x06, b30=0x02, b31=0x2d)    # end in 5 h
+        self.assertEqual((s.phase, s.minutes_left, s.delay_hours), ("delayed", 300, 5))
+
+    def test_steam_extra_rinse_quicker(self):
+        self.assertTrue(session_status(b24=0x81).steam)
+        self.assertTrue(session_status(b28=0x99, b88=0x04).extra_rinse)
+        self.assertEqual(session_status(b28=0x99, b88=0x04).rinses, 3)
+        self.assertEqual(session_status(b107=0x2b).quicker, 1)
+        self.assertEqual(session_status(b107=0x4b).quicker, 2)
+
+    def test_idle_phase_variants(self):
+        for raw in (0x23, 0x24, 0x25, 0x28):
+            self.assertEqual(session_status(b18=raw).phase, "idle", hex(raw))
+        self.assertEqual(session_status(b18=0x23, b25=0x03).phase, "delayed")
+        self.assertEqual(session_status(b18=0x42).phase, "unknown")   # start: not a known step
+
+
 if __name__ == "__main__":
     unittest.main()

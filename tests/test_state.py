@@ -82,5 +82,24 @@ class RawHistoryTest(unittest.TestCase):
         self.assertEqual(st.raw_history[-1][0], float(RAW_HISTORY + 9))
 
 
+
+class OptionsViewTest(unittest.TestCase):
+    def test_view_has_program_and_options(self):
+        from tests.test_status import session_status
+        st = WasherState()
+        st.on_connect(100.0)
+        st.on_status(session_status(b20=0x09, b107=0x4b, b24=0x81), 100.0)
+        v = st.view(100.0)
+        self.assertEqual((v["program"], v["temperature_c"], v["quicker"], v["steam"]),
+                         ("Synthetics", 40, 2, True))
+
+    def test_delayed_has_end_time(self):
+        from tests.test_status import session_status
+        st = WasherState()
+        st.on_connect(100.0)
+        st.on_status(session_status(b18=0x2c, b25=0x06, b30=0x02, b31=0x2d), 100.0)
+        self.assertEqual(st.view(100.0)["end_time"], 100.0 + 300 * 60)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Callable
 from urllib.parse import urlparse
 
+from .status import PROGRAMS
 from .store import Cycle, Totals
 
 log = logging.getLogger(__name__)
@@ -56,6 +57,12 @@ def _value(field: str) -> str:
     return "{{ value_json.get('%s') }}" % field
 
 
+def _flag(field: str) -> str:
+    """ON, OFF, or None (unknown) before the first status."""
+    return ("{%% set v = value_json.get('%s') %%}"
+            "{{ 'None' if v is none else ('ON' if v else 'OFF') }}" % field)
+
+
 def discovery_payloads(node_id: str = NODE) -> dict[str, dict]:
     diagnostic = {"entity_category": "diagnostic"}
     entities = [
@@ -69,8 +76,22 @@ def discovery_payloads(node_id: str = NODE) -> dict[str, dict]:
         _entity("sensor", "end_time", "End time", live=True, value_template=_value("end_time"),
                 device_class="timestamp"),
         _entity("binary_sensor", "door_locked", "Door locked", live=True,
-                value_template="{{ 'ON' if value_json.get('door_locked') else 'OFF' }}",
-                icon="mdi:lock", enabled_by_default=False),
+                value_template=_flag("door_locked"), icon="mdi:lock"),
+        _entity("sensor", "program", "Program", live=True, value_template=_value("program"),
+                device_class="enum", options=sorted(PROGRAMS.values()), icon="mdi:tune-variant"),
+        _entity("sensor", "temperature", "Temperature", live=True,
+                value_template=_value("temperature_c"), unit_of_measurement="°C",
+                device_class="temperature", icon="mdi:thermometer-water"),
+        _entity("binary_sensor", "steam", "Steam", live=True, value_template=_flag("steam"),
+                icon="mdi:weather-fog"),
+        _entity("binary_sensor", "extra_rinse", "Extra rinse", live=True,
+                value_template=_flag("extra_rinse"), icon="mdi:water-plus"),
+        _entity("sensor", "quicker", "Quicker", live=True, device_class="enum",
+                options=["off", "1", "2"], icon="mdi:clock-fast",
+                value_template="{% set q = value_json.get('quicker') %}"
+                               "{{ None if q is none else ('off' if q == 0 else q) }}"),
+        _entity("sensor", "rinses", "Rinses", live=True, value_template=_value("rinses"),
+                icon="mdi:water-sync"),
         _entity("sensor", "spin_speed", "Spin speed", live=True, value_template=_value("spin_rpm"),
                 unit_of_measurement="rpm", icon="mdi:rotate-right"),
         _entity("sensor", "cycle_energy", "Cycle energy", live=True,

@@ -12,6 +12,10 @@ GRACE_S = 600
 # The washer sends a heartbeat about every 180 s. Two missed plus a margin.
 LIVENESS_S = 420
 
+# Program and options, from the status. The card and MQTT show them.
+OPTION_KEYS = ("program", "temperature_c", "steam", "extra_rinse", "quicker", "rinses",
+               "delay_hours")
+
 LIVE_KEYS = ("minutes_left", "end_time", "spin_rpm", "door_locked",
              "cycle_energy_kwh", "cycle_water_l")
 
@@ -75,6 +79,7 @@ class WasherState:
             "last_cycle_energy_kwh": self.last_cycle.energy_kwh if self.last_cycle else None,
             "last_cycle_water_l": self.last_cycle.water_l if self.last_cycle else None,
             "last_cycle_confirmed": self.last_cycle.confirmed if self.last_cycle else None,
+            **{k: None for k in OPTION_KEYS},
         }
         if s is None or (lost is not None and now - lost > GRACE_S):
             return v
@@ -87,7 +92,8 @@ class WasherState:
             cycle_energy_kwh=s.energy_kwh,
             cycle_water_l=s.water_l,
             stale=lost is not None,
+            **{k: getattr(s, k) for k in OPTION_KEYS},
         )
-        if s.phase in RUNNING and s.minutes_left is not None and self.status_at is not None:
+        if s.phase in RUNNING | {"delayed"} and s.minutes_left is not None and self.status_at is not None:
             v["end_time"] = self.status_at + s.minutes_left * 60
         return v

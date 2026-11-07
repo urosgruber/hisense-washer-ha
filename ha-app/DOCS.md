@@ -58,8 +58,13 @@ to this app. Set `cloud_address` to use a fixed IP address instead.
 ## Home Assistant
 
 With MQTT on (the default), the app creates the **Hisense Washer** device:
-phase, minutes left, end time, spin speed, energy and water of the running
-wash, totals, connection, cloud state, and the "Cycle" event.
+phase, minutes left, end time, program, temperature, spin speed, the
+options (Steam, Extra rinse, Quicker), door lock, energy and water of the
+running wash, totals, connection, cloud state, and the "Cycle" event.
+
+The program names come from a Hisense 5S washer. Another model can use
+other program codes; the Program entity is then unknown. The admin page
+"Raw status bytes" helps to find the codes.
 
 **Total energy** and **Total water** work in the Energy dashboard.
 
