@@ -15,7 +15,28 @@ class AppConfigTest(unittest.TestCase):
         cls.run_sh = (APP / "run.sh").read_text()
 
     def test_options_match_schema(self):
-        self.assertEqual(set(self.config["options"]), set(self.config["schema"]))
+        # An optional option with no default value stays hidden in the panel.
+        self.assertLessEqual(set(self.config["options"]), set(self.config["schema"]))
+        self.assertEqual(set(self.config["schema"]),
+                         {"washer_ip", "notify_targets", "cloud_max_hours",
+                          "cloud_resolver", "cloud_address"})
+
+    def test_cloud_options_are_hidden(self):
+        for option in ("cloud_resolver", "cloud_address"):
+            self.assertEqual(self.config["schema"][option], "str?", option)
+            self.assertNotIn(option, self.config["options"], option)
+        self.assertIn("bashio::config 'cloud_resolver' '1.1.1.1'", self.run_sh)
+
+    def test_every_option_has_a_label(self):
+        names = yaml.safe_load((APP / "translations" / "en.yaml").read_text())
+        for option in self.config["schema"]:
+            entry = names["configuration"][option]
+            self.assertTrue(entry["name"] and entry["description"], option)
+        self.assertEqual(set(names["network"]), set(self.config["ports"]))
+
+    def test_mqtt_and_notify_are_always_on(self):
+        self.assertNotIn("bashio::config.true", self.run_sh)
+        self.assertIn("python3 /notify.py", self.run_sh)
 
     def test_secure_defaults(self):
         self.assertEqual(self.config["options"]["notify_targets"], [])
@@ -27,11 +48,8 @@ class AppConfigTest(unittest.TestCase):
         self.assertEqual(self.config["options"]["cloud_max_hours"], 2)
 
     def test_every_option_reaches_the_server(self):
-        handled_elsewhere = {"mqtt", "notify", "notify_targets"}  # run.sh and notify.py use them
-        for option in set(self.config["options"]) - handled_elsewhere:
-            self.assertRegex(self.run_sh, rf"bashio::config '{option}'", option)
-        for option in handled_elsewhere - {"notify_targets"}:
-            self.assertIn(f"bashio::config.true '{option}'", self.run_sh)
+        for option in set(self.config["schema"]) - {"notify_targets"}:  # notify.py reads it
+            self.assertRegex(self.run_sh, rf"bashio::config(\.has_value)? '{option}'", option)
 
     def test_container_port_is_fixed(self):
         # The host port changes in the Network panel; the container port never does.

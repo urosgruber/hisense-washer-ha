@@ -3,7 +3,7 @@
 # sends the washer's port 443 here, because Home Assistant owns 443. To use
 # another host port, change it in the app's Network panel.
 name: Hisense Washer
-version: "0.3.2"
+version: "0.3.3"
 slug: hisense_washer
 description: Local status of a Hisense washer, with no ConnectLife cloud by default
 url: https://github.com/urosgruber/hisense-washer-ha
@@ -34,20 +34,16 @@ homeassistant_api: true
 map:
   - type: homeassistant_config
     read_only: false
+# Names and descriptions for the panel: translations/en.yaml. The cloud
+# options are optional with no value, so the panel hides them.
 options:
   washer_ip: ""
-  mqtt: true
-  notify: true
   notify_targets: []
   cloud_max_hours: 2
-  cloud_resolver: "1.1.1.1"
-  cloud_address: ""
 schema:
   washer_ip: str?
-  mqtt: bool
-  notify: bool
   notify_targets:
     - str
   cloud_max_hours: float(0.5,24)
-  cloud_resolver: str
+  cloud_resolver: str?
   cloud_address: str?

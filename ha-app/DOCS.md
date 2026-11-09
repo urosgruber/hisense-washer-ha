@@ -53,11 +53,14 @@ the cloud off. The admin page then shows the error.
 
 The app finds the real cloud through a public DNS server (option
 `cloud_resolver`, default `1.1.1.1`), because your own DNS points the host
-to this app. Set `cloud_address` to use a fixed IP address instead.
+to this app. Set `cloud_address` to use a fixed IP address instead, for
+example when your network sends all DNS to a local server. The panel
+hides both options until you show the unused optional options.
 
 ## Home Assistant
 
-With MQTT on (the default), the app creates the **Hisense Washer** device:
+The app uses the MQTT broker app (Mosquitto) and creates the **Hisense
+Washer** device:
 phase, minutes left, end time, program, temperature, spin speed, the
 options (Pre-wash, Steam, Cold wash, Extra rinse, Quicker, Anti crease), door lock, energy and water of the
 running wash, totals, connection, cloud state, and the "Cycle" event.
