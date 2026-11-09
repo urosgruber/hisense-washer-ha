@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4
+
+- Fix: the option names and descriptions of 0.3.3 did not reach Home
+  Assistant. The release now includes them.
+
 ## 0.3.3
 
 - The Configuration panel shows a name and a description for each option.

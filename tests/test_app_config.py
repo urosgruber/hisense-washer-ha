@@ -34,6 +34,11 @@ class AppConfigTest(unittest.TestCase):
             self.assertTrue(entry["name"] and entry["description"], option)
         self.assertEqual(set(names["network"]), set(self.config["ports"]))
 
+    def test_release_branch_gets_the_translations(self):
+        # Home Assistant reads the panel names from the release branch.
+        workflow = (APP.parent / ".github" / "workflows" / "ha-app.yml").read_text()
+        self.assertRegex(workflow, r"cp -r [^\n]*ha-app/translations")
+
     def test_mqtt_and_notify_are_always_on(self):
         self.assertNotIn("bashio::config.true", self.run_sh)
         self.assertIn("python3 /notify.py", self.run_sh)

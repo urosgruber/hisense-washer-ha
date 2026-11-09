@@ -104,6 +104,8 @@ jobs:
           mkdir -p ha-app
           cp "$GITHUB_WORKSPACE/repository.yaml" .
           cp "$GITHUB_WORKSPACE"/ha-app/{config.yaml,DOCS.md,CHANGELOG.md,icon.png,logo.png} ha-app/
+          rm -rf ha-app/translations
+          cp -r "$GITHUB_WORKSPACE/ha-app/translations" ha-app/
           git add -A
           git commit -m "HA app ${VERSION} (from ${GITHUB_SHA::7})"
           git push origin release
