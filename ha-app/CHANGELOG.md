@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+
+- Clearer description of the option "Cloud IP address".
+
 ## 0.3.4
 
 - Fix: the option names and descriptions of 0.3.3 did not reach Home
