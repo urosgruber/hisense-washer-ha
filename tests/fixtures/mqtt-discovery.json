@@ -1,4 +1,58 @@
 {
+  "homeassistant/binary_sensor/hisense_washer/anti_crease/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "binary_sensor.hisense_washer_anti_crease",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:tshirt-crew-outline",
+    "name": "Anti crease",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_anti_crease",
+    "value_template": "{% set v = value_json.get('anti_crease') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
+  },
+  "homeassistant/binary_sensor/hisense_washer/cold_wash/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "binary_sensor.hisense_washer_cold_wash",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:snowflake",
+    "name": "Cold wash",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_cold_wash",
+    "value_template": "{% set v = value_json.get('cold_wash') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
+  },
   "homeassistant/binary_sensor/hisense_washer/connected/config": {
     "availability": [
       {
@@ -76,6 +130,33 @@
     "state_topic": "hisense_washer/state",
     "unique_id": "hisense_washer_extra_rinse",
     "value_template": "{% set v = value_json.get('extra_rinse') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
+  },
+  "homeassistant/binary_sensor/hisense_washer/pre_wash/config": {
+    "availability": [
+      {
+        "topic": "hisense_washer/availability"
+      },
+      {
+        "topic": "hisense_washer/state",
+        "value_template": "{{ 'online' if value_json.get('connected') or value_json.get('stale') else 'offline' }}"
+      }
+    ],
+    "availability_mode": "all",
+    "default_entity_id": "binary_sensor.hisense_washer_pre_wash",
+    "device": {
+      "identifiers": [
+        "hisense_washer"
+      ],
+      "manufacturer": "Hisense",
+      "model": "Washer (ConnectLife)",
+      "name": "Hisense Washer"
+    },
+    "has_entity_name": true,
+    "icon": "mdi:water-outline",
+    "name": "Pre-wash",
+    "state_topic": "hisense_washer/state",
+    "unique_id": "hisense_washer_pre_wash",
+    "value_template": "{% set v = value_json.get('pre_wash') %}{{ 'None' if v is none else ('ON' if v else 'OFF') }}"
   },
   "homeassistant/binary_sensor/hisense_washer/steam/config": {
     "availability": [

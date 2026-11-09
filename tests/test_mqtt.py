@@ -19,6 +19,8 @@ ENTITY_IDS = {
     "sensor.hisense_washer_program", "sensor.hisense_washer_temperature",
     "sensor.hisense_washer_quicker", "sensor.hisense_washer_rinses",
     "binary_sensor.hisense_washer_steam", "binary_sensor.hisense_washer_extra_rinse",
+    "binary_sensor.hisense_washer_pre_wash", "binary_sensor.hisense_washer_anti_crease",
+    "binary_sensor.hisense_washer_cold_wash",
 }
 
 VIEW = {"phase": "washing", "phase_raw": "0x44", "minutes_left": 37, "end_time": 1793990734.0,
@@ -26,7 +28,8 @@ VIEW = {"phase": "washing", "phase_raw": "0x44", "minutes_left": 37, "end_time":
         "connected": True, "stale": False, "last_status": 1793988514.0,
         "last_cycle_end": None, "last_cycle_energy_kwh": None, "last_cycle_water_l": None,
         "last_cycle_confirmed": None, "program": "Synthetics", "temperature_c": 40,
-        "steam": False, "extra_rinse": True, "quicker": 2, "rinses": 3, "delay_hours": 0}
+        "steam": False, "extra_rinse": True, "quicker": 2, "rinses": 3, "delay_hours": 0,
+        "pre_wash": True, "anti_crease": False, "cold_wash": True}
 
 
 class DiscoveryTest(unittest.TestCase):

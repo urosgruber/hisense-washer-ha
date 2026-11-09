@@ -68,11 +68,14 @@ check("unavailable renders without a crash", html().includes("Washer"));
 c.hass = hass({ "sensor.phase": "washing", "sensor.minutes_left": "68", "sensor.end_time": inMinutes(68),
   "sensor.program": "Synthetics", "sensor.temperature": "40", "sensor.spin_speed": "1000",
   "binary_sensor.door_locked": "on", "sensor.quicker": "2", "binary_sensor.steam": "off",
-  "binary_sensor.extra_rinse": "on" });
+  "binary_sensor.extra_rinse": "on", "binary_sensor.pre_wash": "on",
+  "binary_sensor.anti_crease": "on", "binary_sensor.cold_wash": "off" });
 check("shows the program, temperature and spin", html().includes("Synthetics · 40 °C · 1000 rpm"));
 check("shows the door lock icon", html().includes("mdi:lock"));
 check("shows the options that are on", html().includes("Quicker 2") && html().includes("Extra rinse")
   && !html().includes(">Steam<"));
+check("shows pre-wash and anti crease, not cold wash", html().includes(">Pre-wash<")
+  && html().includes(">Anti crease<") && !html().includes(">Cold wash<"));
 check("shows the connection icon when connected", html().includes("mdi:wifi\""));
 
 c.hass = hass({ "sensor.phase": "idle", "sensor.program": "Auto", "sensor.temperature": "0",

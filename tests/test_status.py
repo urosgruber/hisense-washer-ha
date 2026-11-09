@@ -147,6 +147,18 @@ class SessionFieldsTest(unittest.TestCase):
         self.assertEqual(session_status(b107=0x2b).quicker, 1)
         self.assertEqual(session_status(b107=0x4b).quicker, 2)
 
+    def test_pre_wash_anti_crease_cold_wash(self):
+        # The test session of 2026-11-09: Steam held 3 s, and the Option button.
+        s = session_status(b18=0x23, b24=0x11)
+        self.assertEqual((s.pre_wash, s.anti_crease, s.cold_wash), (True, False, False))
+        self.assertEqual(session_status(b24=0x41).anti_crease, True)
+        self.assertEqual(session_status(b100=0x02).cold_wash, True)
+        s = session_status(b24=0x41, b100=0x02)
+        self.assertEqual((s.pre_wash, s.anti_crease, s.cold_wash), (False, True, True))
+        s = session_status(b24=0x05)   # Extra Rinse held 3 s: sound off, not an option
+        self.assertEqual((s.pre_wash, s.anti_crease, s.cold_wash, s.steam),
+                         (False, False, False, False))
+
     def test_idle_phase_variants(self):
         for raw in (0x23, 0x24, 0x25, 0x28):
             self.assertEqual(session_status(b18=raw).phase, "idle", hex(raw))

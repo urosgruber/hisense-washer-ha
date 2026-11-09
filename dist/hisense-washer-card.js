@@ -15,7 +15,8 @@ const RUNNING = new Set(["washing", "rinsing", "spinning"]);
 const WATCHED = ["sensor.phase", "sensor.minutes_left", "sensor.end_time", "sensor.cycle_energy",
   "sensor.cycle_water", "binary_sensor.connected", "binary_sensor.door_locked", "sensor.cloud",
   "event.cycle", "sensor.program", "sensor.temperature", "sensor.spin_speed", "sensor.quicker",
-  "binary_sensor.steam", "binary_sensor.extra_rinse"];
+  "binary_sensor.steam", "binary_sensor.extra_rinse", "binary_sensor.pre_wash",
+  "binary_sensor.anti_crease", "binary_sensor.cold_wash"];
 // Programs with no temperature choice: the washer reports 0 for them.
 const NO_TEMPERATURE = new Set(["Eco 40-60", "Spin", "Additional Cycles"]);
 
@@ -98,10 +99,13 @@ class HisenseWasherCard extends HTMLElement {
 
   _options() {
     const on = [];
+    if (this._value("binary_sensor", "pre_wash") === "on") on.push("Pre-wash");
     if (this._value("binary_sensor", "steam") === "on") on.push("Steam");
+    if (this._value("binary_sensor", "cold_wash") === "on") on.push("Cold wash");
     if (this._value("binary_sensor", "extra_rinse") === "on") on.push("Extra rinse");
     const quicker = this._value("sensor", "quicker");
     if (quicker && quicker !== "off") on.push(`Quicker ${quicker}`);
+    if (this._value("binary_sensor", "anti_crease") === "on") on.push("Anti crease");
     return on;
   }
 

@@ -86,6 +86,12 @@ def discovery_payloads(node_id: str = NODE) -> dict[str, dict]:
                 icon="mdi:weather-fog"),
         _entity("binary_sensor", "extra_rinse", "Extra rinse", live=True,
                 value_template=_flag("extra_rinse"), icon="mdi:water-plus"),
+        _entity("binary_sensor", "pre_wash", "Pre-wash", live=True,
+                value_template=_flag("pre_wash"), icon="mdi:water-outline"),
+        _entity("binary_sensor", "anti_crease", "Anti crease", live=True,
+                value_template=_flag("anti_crease"), icon="mdi:tshirt-crew-outline"),
+        _entity("binary_sensor", "cold_wash", "Cold wash", live=True,
+                value_template=_flag("cold_wash"), icon="mdi:snowflake"),
         _entity("sensor", "quicker", "Quicker", live=True, device_class="enum",
                 options=["off", "1", "2"], icon="mdi:clock-fast",
                 value_template="{% set q = value_json.get('quicker') %}"

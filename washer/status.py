@@ -25,12 +25,13 @@ RUNNING = {"washing", "rinsing", "spinning"}
 B_PROGRAM = 20
 B_TEMP = 21
 B_SPIN = 22
-B_OPTIONS = 24          # 0x80 steam
+B_OPTIONS = 24          # 0x80 steam, 0x40 anti crease, 0x10 pre-wash, 0x04 sound off
 B_DELAY_HOURS = 25
 B_FLAGS = 28            # 0x20 door locked, 0x80 extra rinse
 B_MINUTES_HI = 30       # minutes left: 16 bits, each byte - 1
 B_MINUTES = 31
 B_RINSES = 88
+B_COLD_WASH = 100       # value 1: the Option button's cold wash
 B_QUICKER = 107         # 0x20 Quicker level 1, 0x40 level 2
 B_ENERGY = 66
 B_WATER_L = 67
@@ -38,6 +39,8 @@ B_WATER_CL = 68
 DOOR_BIT = 0x20
 EXTRA_RINSE_BIT = 0x80
 STEAM_BIT = 0x80
+ANTI_CREASE_BIT = 0x40
+PRE_WASH_BIT = 0x10
 
 # Byte 20, as decoded (the knob session of 2026-11-07, Hisense 5S series).
 PROGRAMS = {
@@ -98,6 +101,9 @@ class Status:
     quicker: int | None = None
     rinses: int | None = None
     delay_hours: int | None = None
+    pre_wash: bool | None = None
+    anti_crease: bool | None = None
+    cold_wash: bool | None = None
     # The decoded 115 bytes, for the admin page. Not part of equality.
     raw: bytes = field(default=b"", compare=False, repr=False)
 
@@ -127,6 +133,9 @@ class Status:
             quicker=None if quicker is None else (2 if quicker & 0x40 else 1 if quicker & 0x20 else 0),
             rinses=_value(d, B_RINSES),
             delay_hours=delay,
+            pre_wash=_bit(d, B_OPTIONS, PRE_WASH_BIT),
+            anti_crease=_bit(d, B_OPTIONS, ANTI_CREASE_BIT),
+            cold_wash=None if B_COLD_WASH >= len(d) else _value(d, B_COLD_WASH) == 1,
             raw=bytes(d),
         )
 

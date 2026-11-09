@@ -14,7 +14,7 @@ LIVENESS_S = 420
 
 # Program and options, from the status. The card and MQTT show them.
 OPTION_KEYS = ("program", "temperature_c", "steam", "extra_rinse", "quicker", "rinses",
-               "delay_hours")
+               "delay_hours", "pre_wash", "anti_crease", "cold_wash")
 
 LIVE_KEYS = ("minutes_left", "end_time", "spin_rpm", "door_locked",
              "cycle_energy_kwh", "cycle_water_l")

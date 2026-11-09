@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+New fields, decoded from a second session at the washer.
+
+- New entities: Pre-wash (Steam held 3 s), Anti crease and Cold wash (both
+  set with the Option button).
+- The card shows them as chips when they are on.
+- Known but not shown: the sound is off when bit 0x04 of byte 24 is set.
+  The child lock and the door (open or closed) are not in the status.
+
 ## 0.2.2
 
 - Raw status bytes: the page keeps the last 200 statuses (before: 40),
