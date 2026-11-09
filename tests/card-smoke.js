@@ -74,6 +74,8 @@ check("shows the program, temperature and spin", html().includes("Synthetics · 
 check("shows the door lock icon", html().includes("mdi:lock"));
 check("shows the options that are on", html().includes("Quicker 2") && html().includes("Extra rinse")
   && !html().includes(">Steam<"));
+check("option chips carry icons like the washer panel", html().includes("mdi:tshirt-crew-outline")
+  && html().includes("mdi:water-plus") && html().includes("mdi:clock-fast") && !html().includes("mdi:snowflake"));
 check("shows pre-wash and anti crease, not cold wash", html().includes(">Pre-wash<")
   && html().includes(">Anti crease<") && !html().includes(">Cold wash<"));
 check("shows the connection icon when connected", html().includes("mdi:wifi\""));

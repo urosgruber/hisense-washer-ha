@@ -97,15 +97,20 @@ class HisenseWasherCard extends HTMLElement {
     return parts.join(" · ");
   }
 
+  // Each option that is on: [label, icon]. The icons are the nearest MDI
+  // icons to the symbols on the washer panel.
   _options() {
     const on = [];
-    if (this._value("binary_sensor", "pre_wash") === "on") on.push("Pre-wash");
-    if (this._value("binary_sensor", "steam") === "on") on.push("Steam");
-    if (this._value("binary_sensor", "cold_wash") === "on") on.push("Cold wash");
-    if (this._value("binary_sensor", "extra_rinse") === "on") on.push("Extra rinse");
+    const flag = (entity, label, icon) => {
+      if (this._value("binary_sensor", entity) === "on") on.push([label, icon]);
+    };
+    flag("pre_wash", "Pre-wash", "mdi:water-outline");
+    flag("steam", "Steam", "mdi:weather-fog");
+    flag("cold_wash", "Cold wash", "mdi:snowflake");
+    flag("extra_rinse", "Extra rinse", "mdi:water-plus");
     const quicker = this._value("sensor", "quicker");
-    if (quicker && quicker !== "off") on.push(`Quicker ${quicker}`);
-    if (this._value("binary_sensor", "anti_crease") === "on") on.push("Anti crease");
+    if (quicker && quicker !== "off") on.push([`Quicker ${quicker}`, "mdi:clock-fast"]);
+    flag("anti_crease", "Anti crease", "mdi:tshirt-crew-outline");
     return on;
   }
 
@@ -196,7 +201,8 @@ class HisenseWasherCard extends HTMLElement {
         </div>
         <div class="feature tile">${main}</div>
         ${running || phase === "done" ? `<div class="feature steps">${steps}</div>` : ""}
-        ${options.length ? `<div class="chips">${options.map((o) => `<span class="chip">${esc(o)}</span>`).join("")}</div>` : ""}
+        ${options.length ? `<div class="chips">${options.map(([label, icon]) =>
+          `<span class="chip"><ha-icon icon="${icon}"></ha-icon>${esc(label)}</span>`).join("")}</div>` : ""}
         ${running ? `<div class="footer">This wash: ${energy.toFixed(2)} kWh · ${water.toFixed(2)} L</div>` : ""}
       </ha-card>`;
     for (const id of ["open-device", "open-device-name"]) {
@@ -249,8 +255,10 @@ const STYLE = `
     font-size: 13px; font-weight: 500; color: var(--secondary-text-color); }
   .step.on { background: var(--selected-bg); color: var(--primary-text-color); box-shadow: var(--selected-shadow); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
-  .chip { font-size: 12px; font-weight: 500; line-height: 24px; padding: 0 10px; border-radius: 12px;
+  .chip { display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 500; line-height: 24px; padding: 0 10px 0 8px; border-radius: 12px;
     background: rgba(var(--wash-rgb), .15); color: var(--primary-text-color); }
+  .chip ha-icon { --mdc-icon-size: 14px; color: rgb(var(--wash-rgb)); }
   .footer { font-size: 12px; color: var(--secondary-text-color); padding: 0 4px; font-variant-numeric: tabular-nums; }
 `;
 
