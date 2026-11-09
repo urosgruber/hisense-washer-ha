@@ -59,7 +59,7 @@ to this app. Set `cloud_address` to use a fixed IP address instead.
 
 With MQTT on (the default), the app creates the **Hisense Washer** device:
 phase, minutes left, end time, program, temperature, spin speed, the
-options (Steam, Extra rinse, Quicker), door lock, energy and water of the
+options (Pre-wash, Steam, Cold wash, Extra rinse, Quicker, Anti crease), door lock, energy and water of the
 running wash, totals, connection, cloud state, and the "Cycle" event.
 
 The program names come from a Hisense 5S washer. Another model can use
