@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- The card shows the wash stages as a progress line, not as a row of
+  buttons. A pre-wash stage shows when Pre-wash is on.
+- New phase "prewashing" (raw 0x43). It is inferred from the ready
+  state 0x23 and is not yet seen in a real wash.
+- The docs show a 14-day history with mini-graph-card.
+
 ## 0.3.1
 
 - The option chips on the card show an icon next to the name. The icons

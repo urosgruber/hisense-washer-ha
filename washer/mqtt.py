@@ -23,7 +23,7 @@ STATE_TOPIC = f"{NODE}/state"
 AVAILABILITY_TOPIC = f"{NODE}/availability"
 CYCLE_TOPIC = f"{NODE}/cycle"
 HA_STATUS_TOPIC = "homeassistant/status"
-PHASE_OPTIONS = ["off", "idle", "delayed", "washing", "rinsing", "spinning", "done", "unknown"]
+PHASE_OPTIONS = ["off", "idle", "delayed", "prewashing", "washing", "rinsing", "spinning", "done", "unknown"]
 
 DEVICE = {"identifiers": [NODE], "manufacturer": "Hisense", "model": "Washer (ConnectLife)",
           "name": "Hisense Washer"}

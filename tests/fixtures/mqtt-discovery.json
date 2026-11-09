@@ -396,6 +396,7 @@
       "off",
       "idle",
       "delayed",
+      "prewashing",
       "washing",
       "rinsing",
       "spinning",

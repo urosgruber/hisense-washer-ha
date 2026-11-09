@@ -73,7 +73,13 @@ class StatusFieldsTest(unittest.TestCase):
         self.assertEqual(s.water_l, 0.0)
 
     def test_running_set(self):
-        self.assertEqual(RUNNING, {"washing", "rinsing", "spinning"})
+        self.assertEqual(RUNNING, {"prewashing", "washing", "rinsing", "spinning"})
+
+    def test_prewashing_step(self):
+        # Inferred: a ready washer shows 0x23 with pre-wash (0x24 without),
+        # so the running pre-wash is 0x43, like 0x44 washing.
+        s = session_status(b18=0x43, b24=0x11)
+        self.assertEqual(s.phase, "prewashing")
 
     def test_status_from_frame(self):
         result = WASH[0]["result"]

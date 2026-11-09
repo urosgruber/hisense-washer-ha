@@ -7,11 +7,14 @@
 //   name: Washer                # optional
 
 const PHASE_NAMES = {
-  off: "Off", idle: "Idle", delayed: "Delay start", washing: "Washing", rinsing: "Rinsing",
+  off: "Off", idle: "Idle", delayed: "Delay start", prewashing: "Pre-washing", washing: "Washing", rinsing: "Rinsing",
   spinning: "Spinning", done: "Done", unknown: "Unknown",
 };
-const STEPS = [["washing", "Wash"], ["rinsing", "Rinse"], ["spinning", "Spin"]];
-const RUNNING = new Set(["washing", "rinsing", "spinning"]);
+// The stages of a wash: [phase, label, icon]. Pre-wash shows only when it is on.
+const PRE_WASH = ["prewashing", "Pre-wash", "mdi:water-outline"];
+const STAGES = [["washing", "Wash", "mdi:water"], ["rinsing", "Rinse", "mdi:waves"],
+  ["spinning", "Spin", "mdi:rotate-right"]];
+const RUNNING = new Set(["prewashing", "washing", "rinsing", "spinning"]);
 const WATCHED = ["sensor.phase", "sensor.minutes_left", "sensor.end_time", "sensor.cycle_energy",
   "sensor.cycle_water", "binary_sensor.connected", "binary_sensor.door_locked", "sensor.cloud",
   "event.cycle", "sensor.program", "sensor.temperature", "sensor.spin_speed", "sensor.quicker",
@@ -170,12 +173,14 @@ class HisenseWasherCard extends HTMLElement {
           <span class="value">${esc(PHASE_NAMES[phase] || phase)}</span></div>`;
     }
 
-    const idx = STEPS.findIndex(([p]) => p === phase);
-    const steps = STEPS.map(([p, label], i) => {
-      let cls = "step";
-      if (phase === "done" || (idx >= 0 && i < idx)) cls += " done";
-      else if (i === idx) cls += " on";
-      return `<div class="${cls}">${phase === "done" || (idx >= 0 && i < idx) ? "✓ " : ""}${label}</div>`;
+    const stages = (phase === "prewashing" || this._value("binary_sensor", "pre_wash") === "on")
+      ? [PRE_WASH, ...STAGES] : STAGES;
+    const idx = stages.findIndex(([p]) => p === phase);
+    const progress = stages.map(([p, label, icon], i) => {
+      const done = phase === "done" || (idx >= 0 && i < idx);
+      const cls = done ? "stage done" : i === idx ? "stage on" : "stage";
+      return `<div class="${cls}"><div class="stage-name"><ha-icon icon="${done ? "mdi:check" : icon}"></ha-icon>${label}</div>
+          <div class="bar"></div></div>`;
     }).join("");
 
     const icons = [];
@@ -200,7 +205,7 @@ class HisenseWasherCard extends HTMLElement {
           ${icons.join("")}
         </div>
         <div class="feature tile">${main}</div>
-        ${running || phase === "done" ? `<div class="feature steps">${steps}</div>` : ""}
+        ${running || phase === "done" ? `<div class="progress">${progress}</div>` : ""}
         ${options.length ? `<div class="chips">${options.map(([label, icon]) =>
           `<span class="chip"><ha-icon icon="${icon}"></ha-icon>${esc(label)}</span>`).join("")}</div>` : ""}
         ${running ? `<div class="footer">This wash: ${energy.toFixed(2)} kWh · ${water.toFixed(2)} L</div>` : ""}
@@ -250,10 +255,18 @@ const STYLE = `
   .big .label { font-size: 12px; color: var(--secondary-text-color); }
   .big .value { font-size: 22px; font-weight: 500; color: var(--primary-text-color);
     font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .steps { height: var(--h); display: flex; gap: 4px; padding: 4px; }
-  .step { flex: 1; display: grid; place-items: center; border-radius: calc(var(--r) - 4px);
-    font-size: 13px; font-weight: 500; color: var(--secondary-text-color); }
-  .step.on { background: var(--selected-bg); color: var(--primary-text-color); box-shadow: var(--selected-shadow); }
+  .progress { display: flex; gap: 6px; padding: 0 2px; }
+  .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .stage-name { display: flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px;
+    color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; }
+  .stage-name ha-icon { --mdc-icon-size: 14px; flex: none; }
+  .bar { height: 4px; border-radius: 2px; background: var(--track); }
+  .stage.done .bar { background: rgba(var(--tone-rgb), .5); }
+  .stage.on .stage-name { color: var(--primary-text-color); font-weight: 500; }
+  .stage.on ha-icon { color: rgb(var(--tone-rgb)); }
+  .stage.on .bar { background: rgb(var(--tone-rgb)); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .stage.on .bar { animation: none; } }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
   .chip { display: inline-flex; align-items: center; gap: 4px;
     font-size: 12px; font-weight: 500; line-height: 24px; padding: 0 10px 0 8px; border-radius: 12px;

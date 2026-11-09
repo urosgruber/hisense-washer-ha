@@ -19,7 +19,7 @@ from .state import RAW_HISTORY, WasherState
 from .store import Store
 
 PHASE_NAMES = {"off": "Off", "idle": "Idle", "delayed": "Delay start", "washing": "Washing",
-               "rinsing": "Rinsing", "spinning": "Spinning", "done": "Done", "unknown": "Unknown"}
+               "prewashing": "Pre-washing", "rinsing": "Rinsing", "spinning": "Spinning", "done": "Done", "unknown": "Unknown"}
 
 # Bytes we already understand. The raw page labels them.
 KNOWN_BYTES = {18: "phase", 20: "program?", 22: "spin/100", 28: "flags (0x20 door?)",

@@ -39,11 +39,24 @@ c.hass = hass({ "sensor.phase": "washing", "sensor.minutes_left": "37", "sensor.
 check("washing shows the end time", html().includes("Ends at"));
 check("washing shows the minutes left", html().includes("37 min left"));
 check("washing shows the phase name", html().includes("Washing"));
-check("washing marks the wash step", /class="step on"[^>]*>[^<]*Wash/.test(html()));
+check("washing marks the wash stage", /class="stage on"[^>]*>(?:(?!class="stage[ "]).)*Wash/s.test(html()));
+check("the progress is information, not a button row", !html().includes("feature steps")
+  && html().includes('class="progress"'));
+check("no pre-wash stage when pre-wash is off", !html().includes("Pre-wash"));
 check("washing shows this wash's water", html().includes("7.84 L"));
 
 c.hass = hass({ "sensor.phase": "spinning", "sensor.minutes_left": "5", "sensor.end_time": inMinutes(5) });
-check("spinning marks wash and rinse done", (html().match(/class="step done"/g) || []).length === 2);
+check("spinning marks wash and rinse done", (html().match(/class="stage done"/g) || []).length === 2);
+
+c.hass = hass({ "sensor.phase": "prewashing", "sensor.minutes_left": "150", "sensor.end_time": inMinutes(150),
+  "binary_sensor.pre_wash": "on" });
+check("prewashing marks the pre-wash stage", /class="stage on"[^>]*>(?:(?!class="stage[ "]).)*Pre-wash/s.test(html()));
+check("prewashing shows the phase name", html().includes("Pre-washing"));
+
+c.hass = hass({ "sensor.phase": "washing", "sensor.minutes_left": "100", "sensor.end_time": inMinutes(100),
+  "binary_sensor.pre_wash": "on" });
+check("with pre-wash, washing has four stages and one done",
+  (html().match(/class="stage[ "]/g) || []).length === 4 && (html().match(/class="stage done"/g) || []).length === 1);
 
 c.hass = hass({ "sensor.phase": "idle" }, { energy_kwh: 0.45, water_l: 54.76, confirmed: true });
 check("idle shows the last wash", html().includes("Last wash") && html().includes("0.45 kWh") && html().includes("54.76 L"));

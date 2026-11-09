@@ -17,10 +17,11 @@ from .frame import Frame
 
 # Byte 18. The high half is the state: 0 off, 2 ready, 4 running. While
 # ready, the low half is the program's first step (Spin shows 0x28, a
-# program with pre-wash 0x23), and 0x2C is a delayed start.
-RUNNING_STEPS = {0x44: "washing", 0x45: "rinsing", 0x48: "spinning", 0x4B: "done"}
+# program with pre-wash 0x23), and 0x2C is a delayed start. The running
+# pre-wash 0x43 is inferred from the ready 0x23; no wash has shown it yet.
+RUNNING_STEPS = {0x43: "prewashing", 0x44: "washing", 0x45: "rinsing", 0x48: "spinning", 0x4B: "done"}
 PHASES = {0x04: "off", 0x24: "idle", 0x2C: "delayed", **RUNNING_STEPS}
-RUNNING = {"washing", "rinsing", "spinning"}
+RUNNING = {"prewashing", "washing", "rinsing", "spinning"}
 
 B_PROGRAM = 20
 B_TEMP = 21
