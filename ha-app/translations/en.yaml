@@ -1,0 +1,34 @@
+configuration:
+  washer_ip:
+    name: Washer IP address
+    description: >-
+      The app accepts the washer connection only from this address. Give the
+      washer a fixed IP address in your router. Empty: any address on the
+      network can connect.
+  notify_targets:
+    name: Phones to notify
+    description: >-
+      The Companion app notify services that get a message when a wash ends,
+      without the "notify." prefix. Example: mobile_app_my_phone. Find the
+      names in Developer tools, Actions, "notify.mobile_app_". Empty: no
+      messages.
+  cloud_max_hours:
+    name: Cloud time limit (hours)
+    description: >-
+      The admin page can turn the ConnectLife cloud on for the first login or
+      for a firmware update. After this time the app turns the cloud off.
+  cloud_resolver:
+    name: DNS server for the cloud
+    description: >-
+      Used only when the cloud is on. Your local DNS sends the cloud name to
+      this app, so the app asks this DNS server for the real cloud address.
+      Empty: 1.1.1.1.
+  cloud_address:
+    name: Cloud IP address
+    description: >-
+      Used only when the cloud is on and the DNS server above cannot be
+      reached, for example when the network sends all DNS to a local server.
+      The app then connects to this address and does not ask DNS.
+network:
+  4444/tcp: Washer connection (TLS). A NAT rule sends the washer's port 443 here.
+  8080/tcp: Admin page without Home Assistant. Keep it off; it has no login.
