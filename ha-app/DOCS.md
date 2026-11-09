@@ -110,6 +110,39 @@ cards:
     days_to_show: 14
 ```
 
+With the custom card [mini-graph-card](https://github.com/kalkih/mini-graph-card)
+(from HACS), every day has a bar of the same width, also a day with no
+wash. The card reads the recorder history, not the long-term statistics.
+The recorder keeps 10 days by default, so set `purge_keep_days: 14` (or
+more) under `recorder:` in `configuration.yaml` to see 14 days.
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:mini-graph-card
+    name: Washer energy · 14 days
+    icon: mdi:lightning-bolt
+    entities:
+      - entity: sensor.hisense_washer_total_energy
+    hours_to_show: 336
+    group_by: date
+    aggregate_func: delta
+    show:
+      graph: bar
+      state: false
+  - type: custom:mini-graph-card
+    name: Washer water · 14 days
+    icon: mdi:water
+    entities:
+      - entity: sensor.hisense_washer_total_water
+    hours_to_show: 336
+    group_by: date
+    aggregate_func: delta
+    show:
+      graph: bar
+      state: false
+```
+
 ## Notifications
 
 When a wash ends, the app sends a message to the phones in
