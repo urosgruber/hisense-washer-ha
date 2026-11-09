@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3
+
+- The Configuration panel shows a name and a description for each option.
+- The options `mqtt` and `notify` are gone. MQTT is always on, and an
+  empty `notify_targets` list sends no messages. The Supervisor ignores
+  the old values.
+- `cloud_resolver` is optional and hidden in the panel. Empty means
+  1.1.1.1.
+
 ## 0.3.2
 
 - The card shows the wash stages as a progress line, not as a row of
