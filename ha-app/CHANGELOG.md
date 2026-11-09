@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- The option chips on the card show an icon next to the name. The icons
+  are the nearest Material Design icons to the symbols on the washer
+  panel.
+
 ## 0.3.0
 
 New fields, decoded from a second session at the washer.
