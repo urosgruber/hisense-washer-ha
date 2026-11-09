@@ -26,8 +26,9 @@ configuration:
   cloud_address:
     name: Cloud IP address
     description: >-
-      Used only when the cloud is on and the DNS server above cannot be
-      reached, for example when the network sends all DNS to a local server.
+      Used only when the cloud is on and the DNS server for the cloud
+      (default 1.1.1.1) cannot be reached, for example when the network
+      sends all DNS to a local server.
       The app then connects to this address and does not ask DNS.
 network:
   4444/tcp: Washer connection (TLS). A NAT rule sends the washer's port 443 here.
