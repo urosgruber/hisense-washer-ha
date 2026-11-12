@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.6
+
+- Fix: after a Home Assistant restart, the phone message for a finished
+  wash could stop for good. The notifier waited without a time limit for a
+  Core that did not answer. Now every wait has a limit: 30 s for the login
+  and 60 s for a quiet connection, then a ping. With no answer, the
+  notifier stops and the app starts it again after 15 s.
+- A closed connection now logs "Home Assistant closed the connection",
+  not a JSON error.
+
 ## 0.3.5
 
 - Clearer description of the option "Cloud IP address".
